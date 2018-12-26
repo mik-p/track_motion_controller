@@ -1,6 +1,8 @@
 // link to decent firmware https://github.com/hbrobotics/ros_arduino_bridge/tree/indigo-devel/ros_arduino_firmware/src/libraries
 // link to ros side controller http://wiki.ros.org/diff_drive_controller
 // link to rosserial udp example https://github.com/ros-drivers/rosserial/blob/dd76994c67c5e4997ef64837c07afb4eb0d4df27/rosserial_arduino/src/ros_lib/examples/TcpHelloWorld/TcpHelloWorld.ino#L15
+// arduino PID lib https://github.com/br3ttb/Arduino-PID-Library/blob/master/PID_v1.cpp
+
 
 // try to make this the only arduino dependent File
 
