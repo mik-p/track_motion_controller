@@ -53,7 +53,7 @@ void MotorController::stop()
   _effort = MOTOR_EFFORT_MIN;
 }
 
-void MotorController::set_vector_effort(double new_effort, double max_effort)
+void MotorController::set_vector_effort(double new_effort, double max_effort_rpm)
 {
   if(new_effort < 0)
   {
@@ -64,10 +64,47 @@ void MotorController::set_vector_effort(double new_effort, double max_effort)
   {
     set_direction(MOTOR_DIRECTION_FORWARD);
   }
-  // scale value and send pwm
-  map(new_effort, 0, max_effort, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX);
+
+  // scale value from speed domain and send pwm
+  map(new_effort, 0, max_effort_rpm, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX);
   set_effort((uint8_t)new_effort);
 }
 
-// EncodedMotorController::EncodedMotorController() :
-// {}
+double MotorController::get_vector_effort(double max_effort_rpm)
+{
+  double effort = _effort;
+
+  map(effort, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX, 0, max_effort_rpm); // map to speed domain
+
+  if(_direction == MOTOR_DIRECTION_FORWARD)
+  {
+    return MOTOR_POSITIVE_DIR * effort;
+  }
+  else
+  {
+    return MOTOR_NEGATIVE_DIR * effort;
+  }
+}
+
+EncodedMotorController::EncodedMotorController(MotorController motor, Encoder enc, double max_rpm) :
+MotorController(motor),
+_encoder(enc),
+_max_rpm(max_rpm)
+{}
+
+void EncodedMotorController::tune_max_rpm()
+{
+  // measure speed and compare with effort speed prediction
+}
+
+void EncodedMotorController::set_velocity(double rad_per_s)
+{
+  double effort_rpm = rad_per_s * RPS_TO_RPM; // convert to rpm
+
+  set_vector_effort(effort_rpm, _max_rpm);
+}
+
+double EncodedMotorController::get_velocity()
+{
+  // return _encoder.
+}

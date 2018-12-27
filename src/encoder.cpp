@@ -4,17 +4,18 @@
 #include <Arduino.h>
 
 
-Encoder::Encoder(uint8_t a_pin, uint8_t b_pin, uint8_t inter) :
-_A_phase_pin(a_pin), _B_phase_pin(b_pin), _interrupt(inter)
+Encoder::Encoder(uint8_t a_pin, uint8_t b_pin) :
+_A_phase_pin(a_pin),
+_B_phase_pin(b_pin),
+_A_phase_last(LOW),
+_direction(ENCODER_POSITIVE_DIR),
+_encoder_pulses(0),
+_speed(0)
 {}
 
 void Encoder::init()
 {
-  _direction = ENCODER_POSITIVE_DIR; // set initial direction forward
-
   pinMode(_B_phase_pin, INPUT); // set b phase to read
-
-  attachInterrupt(_interrupt, TICK_ISR, CHANGE); // set interrupt on change of value
 }
 
 void Encoder::tick()
@@ -47,4 +48,14 @@ void Encoder::tick()
   {
     _encoder_pulses--;
   }
+}
+
+void Encoder::set_tick_interrupt(uint8_t interrupt)
+{
+  attachInterrupt(interrupt, tick_isr, CHANGE); // set interrupt on change of value
+}
+
+void Encoder::tick_isr()
+{
+  this.tick();
 }
