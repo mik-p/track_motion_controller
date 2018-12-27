@@ -9,13 +9,16 @@ _A_phase_pin(a_pin),
 _B_phase_pin(b_pin),
 _A_phase_last(LOW),
 _direction(ENCODER_POSITIVE_DIR),
-_encoder_pulses(0),
-_speed(0)
+_encoder_pulses(0)
 {}
 
 void Encoder::init()
 {
-  pinMode(_B_phase_pin, INPUT); // set b phase to read
+  // set phases to read with pullups
+  pinMode(_A_phase_pin, INPUT_PULLUP);
+  pinMode(_B_phase_pin, INPUT_PULLUP);
+
+  zero(); // zero pulse count
 }
 
 void Encoder::tick()
@@ -39,8 +42,7 @@ void Encoder::tick()
 
   _A_phase_last = A_phase_current; // update last A phase
 
-  // update encoder pulse count
-  if(_direction == ENCODER_POSITIVE_DIR)
+  if(_direction == ENCODER_POSITIVE_DIR) // update encoder pulse count
   {
     _encoder_pulses++;
   }
@@ -50,12 +52,14 @@ void Encoder::tick()
   }
 }
 
-void Encoder::set_tick_interrupt(uint8_t interrupt)
+void Encoder::set_tick_interrupt(uint8_t interrupt, void (*tick_isr)())
 {
   attachInterrupt(interrupt, tick_isr, CHANGE); // set interrupt on change of value
 }
 
-void Encoder::tick_isr()
+double Encoder::get_displacement(double pos_i, double pulse_to_pos)
 {
-  this.tick();
+  double pos_f = (double)(_encoder_pulses * pulse_to_pos); // convert pos to pulses
+
+  return pos_f - pos_i; // return radians
 }

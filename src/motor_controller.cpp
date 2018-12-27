@@ -86,25 +86,108 @@ double MotorController::get_vector_effort(double max_effort_rpm)
   }
 }
 
-EncodedMotorController::EncodedMotorController(MotorController motor, Encoder enc, double max_rpm) :
+EncodedMotorController::EncodedMotorController(MotorController motor, Encoder enc, drive_parameters_t * params) :
 MotorController(motor),
 _encoder(enc),
-_max_rpm(max_rpm)
+_drive_params(params),
+_last_update(0),
+_position_setpoint(0),
+_velocity_setpoint(0),
+_position_current(0),
+_velocity_current(0),
+_position_controller(&_drive_params->pos_pid_params),
+_velocity_controller(&_drive_params->vel_pid_params)
 {}
+
+void EncodedMotorController::update()
+{
+  double effort, displacement; // effort to motor
+  unsigned long delta_t_ms = millis() - _last_update; // get measurement duration
+  unsigned long delta_t = delta_t_ms / MILLIS_TO_SEC; // convert time to sec
+
+  if(delta_t_ms >= _drive_params->update_interval) // read encoder and update pos/vel
+  {
+    _last_update = millis(); // reset timer
+
+    displacement = _encoder.get_displacement(_position_current, _drive_params->pulse_to_pos);
+
+    _position_current += displacement;
+
+    _velocity_current = _encoder.get_velocity(displacement, delta_t);
+  }
+  else
+  {
+    return;
+  }
+
+  // determine if currently in position or velocity control
+  if(_position_setpoint != 0) // position control
+  {
+    // determine velocity setpoint based on position pid factory
+    _velocity_setpoint = _position_controller.pid_factory(_position_current, _position_setpoint, delta_t);
+  }
+
+  // determine motor effort based on velocity pid factory
+  effort = _velocity_controller.pid_factory(_velocity_setpoint, _velocity_current, delta_t);
+
+  // set motor effort (convert from rps to rpm)
+  set_vector_effort(effort * RPS_TO_RPM, _drive_params->max_rpm);
+}
 
 void EncodedMotorController::tune_max_rpm()
 {
-  // measure speed and compare with effort speed prediction
+  stop(); // stop motor
+
+  _encoder.zero(); // zero encoder count
+
+  // set motor to max speed
+  set_direction(MOTOR_DIRECTION_FORWARD);
+  set_effort(MOTOR_EFFORT_MAX);
+
+  // wait to read encoder
+  unsigned long t = millis();
+  while(millis() - t < 10 * _drive_params->update_interval) {}
+
+  // read encoder
+  double speed = _encoder.get_velocity(
+    _encoder.get_displacement(0, _drive_params->pulse_to_pos),
+    10 * _drive_params->update_interval
+  );
+
+  stop(); // stop motor
+
+  // compare with effort speed prediction
+  double diff = abs((speed * RPS_TO_RPM) - _drive_params->max_rpm);
+
+  if(diff > _drive_params->max_rpm * 0.1)
+  {
+    _drive_params->max_rpm = speed; // set if out of tolerance
+  }
 }
 
-void EncodedMotorController::set_velocity(double rad_per_s)
+void EncodedMotorController::halt()
 {
-  double effort_rpm = rad_per_s * RPS_TO_RPM; // convert to rpm
-
-  set_vector_effort(effort_rpm, _max_rpm);
+  set_velocity(0);
 }
 
-double EncodedMotorController::get_velocity()
+void EncodedMotorController::set_position(double pos) // unit radians
 {
-  // return _encoder.
+  _position_setpoint = pos; // new position setpoint
+
+  _position_current = 0; // start position profile
+
+  _encoder.zero(); // reset encoder count
+
+  _last_update = millis(); // reset timer
+}
+
+void EncodedMotorController::set_velocity(double vel) // unit rad/s
+{
+  if(_position_setpoint != 0)
+  {
+    set_position(0); // disable position control
+  }
+
+  _velocity_setpoint = vel; // new velocity setpoint
+
 }
