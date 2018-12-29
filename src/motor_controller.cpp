@@ -4,9 +4,8 @@
 #include <Arduino.h>
 
 
-MotorController::MotorController(uint8_t ef_pin, uint8_t dir_pin) :
-_effort_pin(ef_pin),
-_direction_pin(dir_pin),
+MotorController::MotorController(motor_pin_map_t * pin_map) :
+_pin_map(pin_map),
 _effort(MOTOR_EFFORT_MIN),
 _direction(MOTOR_DIRECTION_FORWARD)
 {}
@@ -14,9 +13,13 @@ _direction(MOTOR_DIRECTION_FORWARD)
 void MotorController::init()
 {
   // set pin directions and initial zero out
-  digitalWrite(_effort_pin, MOTOR_EFFORT_MIN);
-  pinMode(_effort_pin, OUTPUT);
-  pinMode(_direction_pin, OUTPUT);
+  digitalWrite(_pin_map->effort_pin, MOTOR_EFFORT_MIN);
+  pinMode(_pin_map->effort_pin, OUTPUT);
+  pinMode(_pin_map->direction_pin, OUTPUT);
+  if(_pin_map->DIRECTION_OPTION == DUAL_DIRECTION_PIN)
+  {
+    pinMode(_pin_map->direction_pin_reverse, OUTPUT);
+  }
 }
 
 void MotorController::set_direction(uint8_t new_dir)
@@ -34,7 +37,11 @@ void MotorController::set_direction(uint8_t new_dir)
   if(new_dir != _direction) // update if new value
   {
     _direction = new_dir;
-    digitalWrite(_direction_pin, _direction);
+    digitalWrite(_pin_map->direction_pin, _direction);
+    if(_pin_map->DIRECTION_OPTION == DUAL_DIRECTION_PIN)
+    {
+      digitalWrite(_pin_map->direction_pin_reverse, !_direction);
+    }
   }
 }
 
@@ -43,13 +50,13 @@ void MotorController::set_effort(uint8_t new_effort)
   if(new_effort != _effort)
   {
     _effort = new_effort;
-    analogWrite(_effort_pin, _effort);
+    analogWrite(_pin_map->effort_pin, _effort);
   }
 }
 
 void MotorController::stop()
 {
-  digitalWrite(_effort_pin, MOTOR_EFFORT_MIN);
+  digitalWrite(_pin_map->effort_pin, MOTOR_EFFORT_MIN);
   _effort = MOTOR_EFFORT_MIN;
 }
 
@@ -86,17 +93,13 @@ double MotorController::get_vector_effort(double max_effort_rpm)
   }
 }
 
-EncodedMotorController::EncodedMotorController(MotorController motor, Encoder enc, drive_parameters_t * params) :
-MotorController(motor),
-_encoder(enc),
-_drive_params(params),
+EncodedMotorController::EncodedMotorController(encoded_motor_parameters_t * motor_params) :
+MotorController(&_motor_params->m_pin_map),
+_motor_params(motor_params),
+_encoder(&_motor_params->e_pin_map),
 _last_update(0),
-_position_setpoint(0),
-_velocity_setpoint(0),
-_position_current(0),
-_velocity_current(0),
-_position_controller(&_drive_params->pos_pid_params),
-_velocity_controller(&_drive_params->vel_pid_params)
+_position_controller(&_motor_params->pos_pid_params),
+_velocity_controller(&_motor_params->vel_pid_params)
 {}
 
 void EncodedMotorController::update()
@@ -105,15 +108,15 @@ void EncodedMotorController::update()
   unsigned long delta_t_ms = millis() - _last_update; // get measurement duration
   unsigned long delta_t = delta_t_ms / MILLIS_TO_SEC; // convert time to sec
 
-  if(delta_t_ms >= _drive_params->update_interval) // read encoder and update pos/vel
+  if(delta_t_ms >= _motor_params->update_interval) // read encoder and update pos/vel
   {
     _last_update = millis(); // reset timer
 
-    displacement = _encoder.get_displacement(_position_current, _drive_params->pulse_to_pos);
+    displacement = _encoder.get_displacement(_position_controller.measurement(), _motor_params->pulse_to_pos);
 
-    _position_current += displacement;
+    _position_controller.add_measurement(displacement); // add to position measurement
 
-    _velocity_current = _encoder.get_velocity(displacement, delta_t);
+    _velocity_controller.measurement(_encoder.get_velocity(displacement, delta_t)); // set current velocity
   }
   else
   {
@@ -121,20 +124,20 @@ void EncodedMotorController::update()
   }
 
   // determine if currently in position or velocity control
-  if(_position_setpoint != 0) // position control
+  if(_position_controller.setpoint() != 0) // position control
   {
     // determine velocity setpoint based on position pid factory
-    _velocity_setpoint = _position_controller.pid_factory(_position_current, _position_setpoint, delta_t);
+    _velocity_controller.setpoint(_position_controller.pid_factory(delta_t));
   }
 
   // determine motor effort based on velocity pid factory
-  effort = _velocity_controller.pid_factory(_velocity_setpoint, _velocity_current, delta_t);
+  effort = _velocity_controller.pid_factory(delta_t);
 
   // set motor effort (convert from rps to rpm)
-  set_vector_effort(effort * RPS_TO_RPM, _drive_params->max_rpm);
+  set_vector_effort(effort * RPS_TO_RPM, _motor_params->rpm_scalar);
 }
 
-void EncodedMotorController::tune_max_rpm()
+void EncodedMotorController::tune_rpm_scalar()
 {
   stop(); // stop motor
 
@@ -146,22 +149,22 @@ void EncodedMotorController::tune_max_rpm()
 
   // wait to read encoder
   unsigned long t = millis();
-  while(millis() - t < 10 * _drive_params->update_interval) {}
+  while(millis() - t < 10 * _motor_params->update_interval) {}
 
   // read encoder
   double speed = _encoder.get_velocity(
-    _encoder.get_displacement(0, _drive_params->pulse_to_pos),
-    10 * _drive_params->update_interval
+    _encoder.get_displacement(0, _motor_params->pulse_to_pos),
+    10 * _motor_params->update_interval
   );
 
   stop(); // stop motor
 
   // compare with effort speed prediction
-  double diff = abs((speed * RPS_TO_RPM) - _drive_params->max_rpm);
+  double diff = abs((speed * RPS_TO_RPM) - _motor_params->rpm_scalar);
 
-  if(diff > _drive_params->max_rpm * 0.1)
+  if(diff > _motor_params->rpm_scalar * 0.1)
   {
-    _drive_params->max_rpm = speed; // set if out of tolerance
+    _motor_params->rpm_scalar = speed; // set if out of tolerance
   }
 }
 
@@ -172,9 +175,9 @@ void EncodedMotorController::halt()
 
 void EncodedMotorController::set_position(double pos) // unit radians
 {
-  _position_setpoint = pos; // new position setpoint
+  _position_controller.setpoint(pos); // new position setpoint
 
-  _position_current = 0; // start position profile
+  _position_controller.measurement(0); // start position profile
 
   _encoder.zero(); // reset encoder count
 
@@ -183,11 +186,11 @@ void EncodedMotorController::set_position(double pos) // unit radians
 
 void EncodedMotorController::set_velocity(double vel) // unit rad/s
 {
-  if(_position_setpoint != 0)
+  if(_position_controller.setpoint() != 0)
   {
     set_position(0); // disable position control
   }
 
-  _velocity_setpoint = vel; // new velocity setpoint
+  _velocity_controller.setpoint(vel); // new velocity setpoint
 
 }

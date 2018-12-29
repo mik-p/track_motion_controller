@@ -11,6 +11,13 @@
 void TICK_ISR(); // declare global interrupt
 
 
+typedef struct
+{
+  uint8_t A_phase_pin; // pin map variables
+  uint8_t B_phase_pin;
+} encoder_pin_map_t;
+
+
 class Encoder
 {
   // usage:
@@ -18,7 +25,7 @@ class Encoder
   // global scope method that calls this 'tick' method
 
 public:
-  Encoder(uint8_t a_pin, uint8_t b_pin);
+  Encoder(encoder_pin_map_t * pin_map);
   void init();
   void tick();
   void set_tick_interrupt(uint8_t interrupt, void (*tick_isr)());
@@ -28,8 +35,7 @@ public:
   double get_velocity(double disp, double delta_t) {return disp / delta_t;} // calculate velocity given disp & timestep
 
 private:
-  uint8_t _A_phase_pin; // pin map variables
-  uint8_t _B_phase_pin;
+  encoder_pin_map_t * _pin_map;
   volatile uint8_t _A_phase_last; // last value of A phase
   volatile int8_t _direction; // rotation direction (defined by B phase)
   volatile uint32_t _encoder_pulses; // number of encoder pulses (rolls over)

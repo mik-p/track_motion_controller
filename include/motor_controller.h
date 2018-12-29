@@ -10,6 +10,9 @@
 #define RPM_TO_RPS
 #define MILLIS_TO_SEC 1000
 
+#define SINGLE_DIRECTION_PIN 0
+#define DUAL_DIRECTION_PIN 1
+
 #define MOTOR_DIRECTION_FORWARD 0
 #define MOTOR_DIRECTION_REVERSE 1
 
@@ -22,22 +25,28 @@
 
 typedef struct
 {
-  double max_rpm; // map effort to speed domain
-  double max_vel; // max velocity for position control
-  // double max_accel; // max acceleration for motion
-  // double pos_tolerance; // position
+  uint8_t effort_pin;
+  uint8_t direction_pin;
+  uint8_t direction_pin_reverse;
+  uint8_t DIRECTION_OPTION;
+} motor_pin_map_t;
+
+typedef struct
+{
+  motor_pin_map_t m_pin_map;
+  encoder_pin_map_t e_pin_map;
+  double rpm_scalar; // map effort to speed domain
   double pulse_to_pos; // encoder pulse to radian conversion
   unsigned long update_interval; // millisecond update interval (ideally less than 100 ms)
-  // unsigned long supervisor_interval; // timeout for unmanaged commands
   pid_parameters_t pos_pid_params;
   pid_parameters_t vel_pid_params;
-} drive_parameters_t;
+} encoded_motor_parameters_t;
 
 
 class MotorController
 {
 public:
-  MotorController(uint8_t ef_pin, uint8_t dir_pin);
+  MotorController(motor_pin_map_t * pin_map);
   void init();
   void set_effort(uint8_t new_effort);
   void set_direction(uint8_t new_dir);
@@ -46,8 +55,7 @@ public:
   double get_vector_effort(double max_effort_rpm);
 
 protected:
-  uint8_t _effort_pin;
-  uint8_t _direction_pin;
+  motor_pin_map_t * _pin_map;
   uint8_t _effort;
   uint8_t _direction;
 };
@@ -62,22 +70,20 @@ class EncodedMotorController : public MotorController
   // position zero is special, it is used to switch position control off
 
 public:
-  EncodedMotorController(MotorController motor, Encoder encoder, drive_parameters_t * params);
+  EncodedMotorController(encoded_motor_parameters_t * motor_params);
   void init() {MotorController::init(); _encoder.init();}
   void update();
-  void tune_max_rpm();
+  void tune_rpm_scalar();
   void halt();
   void set_position(double pos); // start new vel or pos control, this resets status variables
   void set_velocity(double vel);
-  double get_position() {return _position_current;} // get status of current vel or pos control
-  double get_velocity() {return _velocity_current;}
+  double get_position() {return _position_controller.measurement();} // get status of current vel or pos control
+  double get_velocity() {return _velocity_controller.measurement();}
 
 private:
+  encoded_motor_parameters_t * _motor_params; // specific drive configuration
   Encoder _encoder;
-  drive_parameters_t * _drive_params; // specific drive configuration
   unsigned long _last_update;
-  double _position_setpoint, _velocity_setpoint; // control set points
-  double _position_current, _velocity_current; // status of control
   PIDController _position_controller, _velocity_controller; // velocity pid controller
 };
 

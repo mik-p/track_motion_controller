@@ -4,9 +4,8 @@
 #include <Arduino.h>
 
 
-Encoder::Encoder(uint8_t a_pin, uint8_t b_pin) :
-_A_phase_pin(a_pin),
-_B_phase_pin(b_pin),
+Encoder::Encoder(encoder_pin_map_t * pin_map) :
+_pin_map(pin_map),
 _A_phase_last(LOW),
 _direction(ENCODER_POSITIVE_DIR),
 _encoder_pulses(0)
@@ -15,19 +14,19 @@ _encoder_pulses(0)
 void Encoder::init()
 {
   // set phases to read with pullups
-  pinMode(_A_phase_pin, INPUT_PULLUP);
-  pinMode(_B_phase_pin, INPUT_PULLUP);
+  pinMode(_pin_map->A_phase_pin, INPUT_PULLUP);
+  pinMode(_pin_map->B_phase_pin, INPUT_PULLUP);
 
   zero(); // zero pulse count
 }
 
 void Encoder::tick()
 {
-  uint8_t A_phase_current = digitalRead(_A_phase_pin); // read new A phase
+  uint8_t A_phase_current = digitalRead(_pin_map->A_phase_pin); // read new A phase
 
   if((_A_phase_last == LOW) && (A_phase_current == HIGH)) // add some jitter tolerance ??
   {
-    uint8_t B_phase_current = digitalRead(_B_phase_pin); // read new B phase
+    uint8_t B_phase_current = digitalRead(_pin_map->B_phase_pin); // read new B phase
 
     // update direction on change of B phase
     if((B_phase_current == LOW) && (_direction == ENCODER_POSITIVE_DIR))
