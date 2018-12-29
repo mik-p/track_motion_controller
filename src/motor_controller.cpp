@@ -7,19 +7,20 @@
 MotorController::MotorController(motor_pin_map_t * pin_map) :
 _pin_map(pin_map),
 _effort(MOTOR_EFFORT_MIN),
-_direction(MOTOR_DIRECTION_FORWARD)
+_direction(MOTOR_DIRECTION_INIT)
 {}
 
 void MotorController::init()
 {
   // set pin directions and initial zero out
-  digitalWrite(_pin_map->effort_pin, MOTOR_EFFORT_MIN);
   pinMode(_pin_map->effort_pin, OUTPUT);
   pinMode(_pin_map->direction_pin, OUTPUT);
   if(_pin_map->DIRECTION_OPTION == DUAL_DIRECTION_PIN)
   {
     pinMode(_pin_map->direction_pin_reverse, OUTPUT);
   }
+  
+  digitalWrite(_pin_map->effort_pin, MOTOR_EFFORT_MIN);
 }
 
 void MotorController::set_direction(uint8_t new_dir)
@@ -73,7 +74,8 @@ void MotorController::set_vector_effort(double new_effort, double max_effort_rpm
   }
 
   // scale value from speed domain and send pwm
-  map(new_effort, 0, max_effort_rpm, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX);
+  new_effort = map(new_effort, 0, max_effort_rpm, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX);
+
   set_effort((uint8_t)new_effort);
 }
 
@@ -81,7 +83,8 @@ double MotorController::get_vector_effort(double max_effort_rpm)
 {
   double effort = _effort;
 
-  map(effort, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX, 0, max_effort_rpm); // map to speed domain
+  // map to speed domain
+  effort = map(effort, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX, 0, max_effort_rpm);
 
   if(_direction == MOTOR_DIRECTION_FORWARD)
   {
