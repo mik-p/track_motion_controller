@@ -73,6 +73,8 @@ class EncodedMotorController : public MotorController
 public:
   EncodedMotorController(encoded_motor_parameters_t * motor_params);
   void init() {MotorController::init(); _encoder.init();}
+  void set_encoder_interrupt(uint8_t interrupt, void (*tick_isr)()) {_encoder.set_tick_interrupt(interrupt, tick_isr);}
+  void encoder_tick() {_encoder.tick();}
   void update();
   void tune_rpm_scalar();
   void halt();

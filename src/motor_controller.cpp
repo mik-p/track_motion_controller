@@ -19,7 +19,7 @@ void MotorController::init()
   {
     pinMode(_pin_map->direction_pin_reverse, OUTPUT);
   }
-  
+
   digitalWrite(_pin_map->effort_pin, MOTOR_EFFORT_MIN);
 }
 
@@ -109,7 +109,7 @@ void EncodedMotorController::update()
 {
   double effort, displacement; // effort to motor
   unsigned long delta_t_ms = millis() - _last_update; // get measurement duration
-  unsigned long delta_t = delta_t_ms / MILLIS_TO_SEC; // convert time to sec
+  double delta_t = (double)delta_t_ms / MILLIS_TO_SEC; // convert time to sec
 
   if(delta_t_ms >= _motor_params->update_interval) // read encoder and update pos/vel
   {

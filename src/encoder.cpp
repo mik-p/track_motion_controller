@@ -58,7 +58,12 @@ void Encoder::set_tick_interrupt(uint8_t interrupt, void (*tick_isr)())
 
 double Encoder::get_displacement(double pos_i, double pulse_to_pos)
 {
-  double pos_f = (double)(_encoder_pulses * pulse_to_pos); // convert pos to pulses
+  double pos_f = (double)(_encoder_pulses) * pulse_to_pos; // convert pos to pulses
 
   return pos_f - pos_i; // return radians
+}
+
+double Encoder::get_velocity(double disp, double delta_t)
+{
+  return disp / delta_t;
 }
