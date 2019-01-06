@@ -61,7 +61,7 @@ void MotorController::stop()
   _effort = MOTOR_EFFORT_MIN;
 }
 
-void MotorController::set_vector_effort(double new_effort, double max_effort_rpm)
+void MotorController::set_vector_effort(double new_effort)
 {
   if(new_effort < 0)
   {
@@ -73,41 +73,36 @@ void MotorController::set_vector_effort(double new_effort, double max_effort_rpm
     set_direction(MOTOR_DIRECTION_FORWARD);
   }
 
-  // scale value from speed domain and send pwm
-  new_effort = map(new_effort, 0, max_effort_rpm, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX);
-
-  set_effort((uint8_t)new_effort);
+  // cap value and send pwm
+  if(new_effort > MOTOR_EFFORT_MAX) set_effort(MOTOR_EFFORT_MAX);
+  else if(new_effort < MOTOR_EFFORT_MIN) set_effort(MOTOR_EFFORT_MIN);
+  else set_effort((uint8_t)new_effort);
 }
 
-double MotorController::get_vector_effort(double max_effort_rpm)
+double MotorController::get_vector_effort()
 {
-  double effort = _effort;
-
-  // map to speed domain
-  effort = map(effort, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX, 0, max_effort_rpm);
-
   if(_direction == MOTOR_DIRECTION_FORWARD)
   {
-    return MOTOR_POSITIVE_DIR * effort;
+    return MOTOR_POSITIVE_DIR * _effort;
   }
   else
   {
-    return MOTOR_NEGATIVE_DIR * effort;
+    return MOTOR_NEGATIVE_DIR * _effort;
   }
 }
 
 EncodedMotorController::EncodedMotorController(encoded_motor_parameters_t * motor_params) :
-MotorController(&_motor_params->m_pin_map),
+MotorController(&motor_params->m_pin_map),
 _motor_params(motor_params),
-_encoder(&_motor_params->e_pin_map),
+_encoder(&motor_params->e_pin_map),
 _last_update(0),
-_position_controller(&_motor_params->pos_pid_params),
-_velocity_controller(&_motor_params->vel_pid_params)
+_position_controller(&motor_params->pos_pid_params),
+_velocity_controller(&motor_params->vel_pid_params)
 {}
 
 void EncodedMotorController::update()
 {
-  double effort, displacement; // effort to motor
+  double vel_effort, displacement; // effort to motor
   unsigned long delta_t_ms = millis() - _last_update; // get measurement duration
   double delta_t = (double)delta_t_ms / MILLIS_TO_SEC; // convert time to sec
 
@@ -129,18 +124,19 @@ void EncodedMotorController::update()
   // determine if currently in position or velocity control
   if(_position_controller.setpoint() != 0) // position control
   {
+    // FIXME
     // determine velocity setpoint based on position pid factory
     _velocity_controller.setpoint(_position_controller.pid_factory(delta_t));
   }
 
-  // determine motor effort based on velocity pid factory
-  effort = _velocity_controller.pid_factory(delta_t);
+  // determine motor velocity effort based on velocity pid factory
+  vel_effort = _velocity_controller.pid_factory(delta_t);
 
-  // set motor effort (convert from rps to rpm)
-  set_vector_effort(effort * RPS_TO_RPM, _motor_params->rpm_scalar);
+  // set motor effort (convert from rps to pwm)
+  set_vector_effort(vel_effort * _motor_params->vel_to_effort);
 }
 
-void EncodedMotorController::tune_rpm_scalar()
+double EncodedMotorController::test_effort_response(uint8_t effort, uint32_t sample_time_ms)
 {
   stop(); // stop motor
 
@@ -148,27 +144,27 @@ void EncodedMotorController::tune_rpm_scalar()
 
   // set motor to max speed
   set_direction(MOTOR_DIRECTION_FORWARD);
-  set_effort(MOTOR_EFFORT_MAX);
+  set_effort(effort);
 
   // wait to read encoder
   unsigned long t = millis();
-  while(millis() - t < 10 * _motor_params->update_interval) {}
+  while(millis() - t < sample_time_ms) {}
 
   // read encoder
-  double speed = _encoder.get_velocity(
-    _encoder.get_displacement(0, _motor_params->pulse_to_pos),
-    10 * _motor_params->update_interval
-  );
+  double disp = _encoder.get_displacement(0, _motor_params->pulse_to_pos);
+  double dt = (double)sample_time_ms / MILLIS_TO_SEC;
+  double speed = _encoder.get_velocity(disp, dt);
 
   stop(); // stop motor
 
-  // compare with effort speed prediction
-  double diff = abs((speed * RPS_TO_RPM) - _motor_params->rpm_scalar);
+  return speed;
+}
 
-  if(diff > _motor_params->rpm_scalar * 0.1)
-  {
-    _motor_params->rpm_scalar = speed; // set if out of tolerance
-  }
+double EncodedMotorController::tune_effort_scalar(uint8_t effort)
+{
+  double speed = test_effort_response(effort, 2000);
+
+  return speed / (double)effort; // get inverse ratio (vel/eff)
 }
 
 void EncodedMotorController::halt()

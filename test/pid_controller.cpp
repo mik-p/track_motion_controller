@@ -3,7 +3,7 @@
 
 #include "pid_controller.h"
 
-static pid_parameters_t pin_map_l = {0.5, 0.1, 0.2, 0, 0, 0, 0};
+static pid_parameters_t pin_map_l = {0.5, 0.1, 0.2, 0, 0, 0, 0, 100, -100};
 
 PIDController p(&pin_map_l); // instantiate pid controller
 

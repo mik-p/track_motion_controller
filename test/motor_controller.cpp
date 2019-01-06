@@ -8,7 +8,6 @@ static motor_pin_map_t pin_map_l = {6, 4, 7, DUAL_DIRECTION_PIN};
 MotorController m(&pin_map_l); // instantiate motor controller
 
 static int i = 1;
-static int scalar = 1000;
 
 void setup()
 {
@@ -67,21 +66,14 @@ void setup()
 void loop()
 {
   Serial.print("ramp forward:");
-  for(int j = 0; j <= scalar; j++)
+  for(int j = 0; j <= MOTOR_EFFORT_MAX / 2; j++)
   {
-    m.set_vector_effort(i * j, scalar); // test set vector effort
-    // Serial.print(i * j); Serial.print(", ");
-    // Serial.print(digitalRead(pin_map_l.direction_pin));
-    // Serial.print(", ");
-    // Serial.print(digitalRead(pin_map_l.direction_pin_reverse));
-    // Serial.println();
-
-    // Serial.print("get vector effort: "); // test get vector effort and scaling
+    m.set_vector_effort(i * j++); // test set vector effort
 
     delay(5);
   }
 
-  Serial.println(m.get_vector_effort(255));
+  Serial.println(m.get_vector_effort());
 
   delay(1000);
 
@@ -92,13 +84,13 @@ void loop()
   i *= -1;
 
   Serial.print("ramp reverse:");
-  for(int j = 0; j <= scalar; j++)
+  for(int j = 0; j <= MOTOR_EFFORT_MAX / 2; j++)
   {
-    m.set_vector_effort(i * j, scalar);
+    m.set_vector_effort(i * j++);
     delay(5);
   }
 
-  Serial.println(m.get_vector_effort(255));
+  Serial.println(m.get_vector_effort());
 
   m.stop();
 

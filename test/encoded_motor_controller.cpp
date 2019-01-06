@@ -3,7 +3,7 @@
 
 #include "motor_controller.h"
 
-motor_pin_map_t r_pins = {5, 3, 2, DUAL_DIRECTION_PIN}; // stop second motor
+motor_pin_map_t r_pins = {5, 3, 2, DUAL_DIRECTION_PIN};
 static MotorController r_motor(&r_pins);
 
 // instantiate config and motor class

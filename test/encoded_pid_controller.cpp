@@ -9,7 +9,7 @@ static encoder_pin_map_t pin_map = {2, 4};
 
 static Encoder e(&pin_map);
 
-static pid_parameters_t pin_map_l = {0.5, 0.1, 0.2, 0, 0, 0, 0};
+static pid_parameters_t pin_map_l = {0.5, 0.1, 0.2, 0, 0, 0, 0, 100, -100};
 
 static PIDController p(&pin_map_l);
 
@@ -63,7 +63,7 @@ void loop()
 
   Serial.print(p.measurement());
   Serial.print(", ");
-  Serial.println(p.pid_factory((double)dt / 1000)); // get control signal
+  Serial.println(p.improved_pid_factory((double)dt / 1000)); // get control signal
 
   // while(!Serial.available()) {} // wait for verification test
   // while(Serial.available()) {Serial.read();}

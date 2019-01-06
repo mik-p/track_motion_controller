@@ -6,8 +6,7 @@
 #include "pid_controller.h"
 
 
-#define RPS_TO_RPM 9.5493
-#define RPM_TO_RPS
+// #define RPS_TO_RPM 9.5493
 #define MILLIS_TO_SEC 1000
 
 #define SINGLE_DIRECTION_PIN 0
@@ -36,7 +35,7 @@ typedef struct
 {
   motor_pin_map_t m_pin_map;
   encoder_pin_map_t e_pin_map;
-  double rpm_scalar; // map effort to speed domain
+  double vel_to_effort; // map effort from speed domain
   double pulse_to_pos; // encoder pulse to radian conversion
   unsigned long update_interval; // millisecond update interval (ideally less than 100 ms)
   pid_parameters_t pos_pid_params;
@@ -46,14 +45,16 @@ typedef struct
 
 class MotorController
 {
+  // TODO implement variable limits
+
 public:
   MotorController(motor_pin_map_t * pin_map);
   void init();
   void set_effort(uint8_t new_effort);
   void set_direction(uint8_t new_dir);
   void stop();
-  void set_vector_effort(double new_effort, double max_effort_rpm);
-  double get_vector_effort(double max_effort_rpm);
+  void set_vector_effort(double new_effort);
+  double get_vector_effort();
 
 protected:
   motor_pin_map_t * _pin_map;
@@ -76,7 +77,8 @@ public:
   void set_encoder_interrupt(uint8_t interrupt, void (*tick_isr)()) {_encoder.set_tick_interrupt(interrupt, tick_isr);}
   void encoder_tick() {_encoder.tick();}
   void update();
-  void tune_rpm_scalar();
+  double test_effort_response(uint8_t effort, uint32_t sample_time_ms);
+  double tune_effort_scalar(uint8_t effort);
   void halt();
   void set_position(double pos); // start new vel or pos control, this resets status variables
   void set_velocity(double vel);
@@ -87,7 +89,7 @@ private:
   encoded_motor_parameters_t * _motor_params; // specific drive configuration
   Encoder _encoder;
   unsigned long _last_update;
-  PIDController _position_controller, _velocity_controller; // velocity pid controller
+  PIDController _position_controller, _velocity_controller; // pos/vel controllers
 };
 
 #endif
