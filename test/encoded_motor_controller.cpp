@@ -3,17 +3,17 @@
 
 #include "motor_controller.h"
 
-motor_pin_map_t r_pins = {5, 3, 2, DUAL_DIRECTION_PIN};
+motor_pin_map_t r_pins = {6, 4, 7, DUAL_DIRECTION_PIN}; // stop second motor
 static MotorController r_motor(&r_pins);
 
 // instantiate config and motor class
-motor_pin_map_t m_pin_map = {6, 4, 7, DUAL_DIRECTION_PIN};
+motor_pin_map_t m_pin_map = {5, 3, 2, DUAL_DIRECTION_PIN};
 encoder_pin_map_t e_pin_map = {21, 19};
-double vel_to_effort = 1;
-double pulse_to_pos = 1.0 / 30.0;
+double vel_to_effort = 3.1;
+double pulse_to_pos = 0.0184;
 unsigned long dt = 100; // ms
-pid_parameters_t pos_pid = {0.5, 0.1, 0, 0, 0, 0, 0, 100, -100};
-pid_parameters_t vel_pid = {0.5, 0.1, 0, 0, 0, 0, 0, 100, -100};
+pid_parameters_t pos_pid = {0.5, 0.1, 0.1, 0, 0, 0, 0, 100, -100};
+pid_parameters_t vel_pid = {0.6, 0.01, 0.2, 0, 0, 0, 0, 100, -100};
 
 static encoded_motor_parameters_t params = {
   m_pin_map,
@@ -27,7 +27,9 @@ static encoded_motor_parameters_t params = {
 
 static EncodedMotorController em(&params);
 
-double setpoint = 10;
+double setpoint = 50;
+
+uint8_t start_effort = 0;
 
 void ENC_ISR()
 {
@@ -42,8 +44,8 @@ void setup()
 
   r_motor.init();
 
-  pinMode(20, OUTPUT); // for testing with incremental encoder
-  digitalWrite(20, LOW);
+  // pinMode(20, OUTPUT); // for testing with incremental encoder
+  // digitalWrite(20, LOW);
 
   em.init();
 
@@ -67,6 +69,10 @@ void setup()
       sum += effort_to_vel;
       n++;
     }
+    else
+    {
+      start_effort = ((i + 1) * MOTOR_EFFORT_MAX) / 10;
+    }
 
     delay(del);
 
@@ -77,7 +83,7 @@ void setup()
   Serial.print("effort to velocity model: ");
   if(sum != 0)
   {
-    params.vel_to_effort = sum / n;
+    params.vel_to_effort = n / sum; // flipped during calculation
     Serial.println(params.vel_to_effort);
   }
   else
@@ -98,6 +104,8 @@ void setup()
   Serial.println(em.get_velocity());
 
   Serial.println("begin motion");
+  em.set_vector_effort(start_effort);
+  delay(del);
 }
 
 void loop()
@@ -114,7 +122,12 @@ void loop()
   delay(100);
 
   // while(!Serial.available()) {} // wait for verification test
-  // while(Serial.available()) {Serial.read();}
+  while(Serial.available())
+  {
+    // Serial.read();
+    em.stop();
+    exit(0);
+  }
 
   // exit(0);
 }

@@ -96,6 +96,7 @@ MotorController(&motor_params->m_pin_map),
 _motor_params(motor_params),
 _encoder(&motor_params->e_pin_map),
 _last_update(0),
+_control_mode(MOTOR_POSITION_MODE),
 _position_controller(&motor_params->pos_pid_params),
 _velocity_controller(&motor_params->vel_pid_params)
 {}
@@ -122,18 +123,23 @@ void EncodedMotorController::update()
   }
 
   // determine if currently in position or velocity control
-  if(_position_controller.setpoint() != 0) // position control
+  if(_control_mode == MOTOR_POSITION_MODE) // position control
   {
-    // FIXME
     // determine velocity setpoint based on position pid factory
-    _velocity_controller.setpoint(_position_controller.pid_factory(delta_t));
+    _velocity_controller.setpoint(_position_controller.improved_pid_factory(delta_t));
+    // vel_effort = _position_controller.improved_pid_factory(delta_t);
   }
 
   // determine motor velocity effort based on velocity pid factory
-  vel_effort = _velocity_controller.pid_factory(delta_t);
+  vel_effort = _velocity_controller.improved_pid_factory(delta_t);
+
+  // check limits and tolerances
+  vel_effort *= _motor_params->vel_to_effort;
+  
 
   // set motor effort (convert from rps to pwm)
-  set_vector_effort(vel_effort * _motor_params->vel_to_effort);
+  // set_vector_effort(vel_effort * _motor_params->vel_to_effort);
+  set_vector_effort(vel_effort);
 }
 
 double EncodedMotorController::test_effort_response(uint8_t effort, uint32_t sample_time_ms)
@@ -174,6 +180,8 @@ void EncodedMotorController::halt()
 
 void EncodedMotorController::set_position(double pos) // unit radians
 {
+  _control_mode = MOTOR_POSITION_MODE; // set mode
+
   _position_controller.setpoint(pos); // new position setpoint
 
   _position_controller.measurement(0); // start position profile
@@ -185,10 +193,9 @@ void EncodedMotorController::set_position(double pos) // unit radians
 
 void EncodedMotorController::set_velocity(double vel) // unit rad/s
 {
-  if(_position_controller.setpoint() != 0)
-  {
-    set_position(0); // disable position control
-  }
+  set_position(0); // zero position control and measurements
+
+  _control_mode = MOTOR_VELOCITY_MODE; // set to velocity mode
 
   _velocity_controller.setpoint(vel); // new velocity setpoint
 

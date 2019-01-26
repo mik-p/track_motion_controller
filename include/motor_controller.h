@@ -22,6 +22,9 @@
 #define MOTOR_POSITIVE_DIR (1)
 #define MOTOR_NEGATIVE_DIR (-1)
 
+#define MOTOR_POSITION_MODE 0
+#define MOTOR_VELOCITY_MODE 1
+
 
 typedef struct
 {
@@ -33,8 +36,15 @@ typedef struct
 
 typedef struct
 {
+  uint8_t min_effort;
+  uint8_t start_effort;
+} motor_intrinsics_t;
+
+typedef struct
+{
   motor_pin_map_t m_pin_map;
   encoder_pin_map_t e_pin_map;
+  // motor_intrinsics_t motor_intrinsics;
   double vel_to_effort; // map effort from speed domain
   double pulse_to_pos; // encoder pulse to radian conversion
   unsigned long update_interval; // millisecond update interval (ideally less than 100 ms)
@@ -89,6 +99,7 @@ private:
   encoded_motor_parameters_t * _motor_params; // specific drive configuration
   Encoder _encoder;
   unsigned long _last_update;
+  uint8_t _control_mode;
   PIDController _position_controller, _velocity_controller; // pos/vel controllers
 };
 
