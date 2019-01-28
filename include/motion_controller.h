@@ -3,11 +3,9 @@
 #define MOTION_CONTROLLER_H
 
 #include "motor_controller.h"
+#include "interface_controller.h"
 
-#include <Arduino.h>
-
-
-#define SERIAL_BUFFER_SIZE 128
+// #include <Arduino.h>
 
 
 // typedef struct
@@ -44,13 +42,12 @@ typedef struct
 class MotionController
 {
 public:
-  void attach_serial(Stream & serial) {_serial = &serial;}
-  void get_serial_packet();
+  void get_commands();
+  void send_feedback();
 
 protected:
-  Stream * _serial;
-  uint8_t _serial_buffer[SERIAL_BUFFER_SIZE];
-  uint8_t _serial_buffer_size;
+  // SerialInterfaceController _serial_interface;
+  // UDPInterfaceController _udp_interface;
 };
 
 class SkidMotionController : public MotionController
