@@ -3,8 +3,13 @@
 #define INTERFACE_CONTROLLER_H
 
 #include <HardwareSerial.h>
+// #include <SPI.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
+// #include <Modbus.h>
+#include <ModbusIP.h>
+#include <OPC.h>
+
 
 #define INTERFACE_MSG_STATUS_DONE 0
 #define INTERFACE_MSG_STATUS_PENDING 1
@@ -103,5 +108,15 @@ private:
 // {
 //
 // }
+
+class ModbusIPInterfaceController : public InterfaceController
+{
+
+};
+
+class OPCInterfaceController : public InterfaceController
+{
+
+};
 
 #endif
