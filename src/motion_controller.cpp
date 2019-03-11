@@ -21,21 +21,32 @@ _right_motor(&_motion_params->right_wheel)
   // _serial_buffer_size = 0;
 }
 
-void SkidMotionController::update()
+void SkidMotionController::set_encoder_interrupts(uint8_t int_l, uint8_t int_r, void (*tick_isr)())
 {
-  // update each motor controller
-  _left_motor.update();
-  _right_motor.update();
-
-  // get odometry
-  _left_motor.get_velocity();
-  _right_motor.get_velocity();
-
+  _left_motor.set_encoder_interrupt(int_l, tick_isr);
+  _right_motor.set_encoder_interrupt(int_r, tick_isr);
 }
 
-void set_motion(skid_motion_command_t)
-{
+// void SkidMotionController::update()
+// {
+//   // update each motor controller
+//   _left_motor.update();
+//   _right_motor.update();
+// }
 
+void SkidMotionController::set_motion(skid_motion_msg_t cmd)
+{
+  _left_motor.set_velocity(cmd.left_vel);
+  _right_motor.set_velocity(cmd.right_vel);
+}
+
+skid_motion_msg_t SkidMotionController::get_feedback()
+{
+  skid_motion_msg_t feedback = {
+    _left_motor.get_velocity(),
+    _right_motor.get_velocity()
+  };
+  return feedback;
 }
 
 void get_status()

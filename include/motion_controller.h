@@ -3,7 +3,7 @@
 #define MOTION_CONTROLLER_H
 
 #include "motor_controller.h"
-#include "interface_controller.h"
+// #include "interface_controller.h"
 
 // #include <Arduino.h>
 
@@ -27,15 +27,14 @@ typedef struct
 
 typedef struct
 {
-  double left_pos;
   double left_vel;
-  double right_pos;
   double right_vel;
-} skid_motion_command_t;
+} skid_motion_msg_t;
 
 typedef struct
 {
-  // unsigned long supervisor_interval; // timeout for unmanaged commands
+  unsigned long supervisor_interval; // timeout for unmanaged commands
+  skid_motion_msg_t msg; // actual data
 } skid_motion_packet_t;
 
 
@@ -55,8 +54,12 @@ class SkidMotionController : public MotionController
 public:
   SkidMotionController(skid_motion_parameters_t * params);
   void init() {_left_motor.init(); _right_motor.init();}
-  void update();
-  void set_motion(skid_motion_command_t motion_command);
+  void set_encoder_interrupts(uint8_t int_l, uint8_t int_r, void (*tick_isr)());
+  void encoder_tick() {_left_motor.encoder_tick(); _right_motor.encoder_tick();}
+  void update() {_left_motor.update(); _right_motor.update();}
+  void halt() {_left_motor.halt(); _right_motor.halt();}
+  void set_motion(skid_motion_msg_t cmd);
+  skid_motion_msg_t get_feedback();
   void get_status();
 
 private:

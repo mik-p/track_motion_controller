@@ -1,75 +1,48 @@
 
 #include <Arduino.h>
 
-#include "motor_controller.h"
+#include "motion_controller.h"
 
-#include <OPC.h>
 #include <Ethernet.h>
+#include <aREST.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 
-OPCEthernet opc_interface_controller;
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
-byte mac[] = { 0x90, 0xA2, 0xDA, 0x0E, 0xAD, 0x8D };
-
-IPAddress ip(192, 168, 0, 10);
+IPAddress ip(192, 168, 1, 177);
 // IPAddress gateway(192, 168, 10, 1);
 // IPAddress dns_server(192, 168, 0, 1);
 // IPAddress subnet(255,255,255,0);
 
-const int listen_port = 8888;
+// Ethernet server
+EthernetServer server(80);
 
-opcOperation digital_status_input[14], analog_status_input[6];
+// Create aREST instance
+aREST rest = aREST();
 
-bool readwrite_digital(const char *itemID, const opcOperation opcOP, const bool value)
+// Variables to be exposed to the API
+double velocity_r;
+double velocity_l;
+
+double cmd_vel_r;
+double cmd_vel_l;
+
+// Custom function accessible by the API
+int set_velocity_r(String command)
 {
-  byte port;
-
-  port = atoi(&itemID[1]);
-
-  if (opcOP == opc_opwrite) {
-    if (digital_status_input[port] == opc_opread) {
-      digital_status_input[port] = opc_opwrite;
-      pinMode(port,OUTPUT);
-    }
-
-    digitalWrite(port,value);
-  }
-  else
-  {
-    if (digital_status_input[port] == opc_opwrite) {
-      digital_status_input[port] = opc_opread;
-     // pinMode(port,INPUT);
-    }
-
-    return digitalRead(port);
-  }
-
+  // Get state from command
+  cmd_vel_r = command.toFloat();
+  Serial.println((double)cmd_vel_r);
+  return (int)cmd_vel_r;
 }
 
-int readwrite_analog(const char *itemID, const opcOperation opcOP, const int value) {
-  byte port;
-
-  port = atoi(&itemID[1]);
-
-  if (opcOP == opc_opwrite) {
-    if (analog_status_input[port] == opc_opread) {
-      analog_status_input[port] = opc_opwrite;
-      pinMode(port,OUTPUT);
-    }
-
-    analogWrite(port,value);
-  }
-  else
-  {
-    if (analog_status_input[port] == opc_opwrite) {
-      analog_status_input[port] = opc_opread;
-      //pinMode(port,INPUT);
-    }
-
-    return analogRead(port);
-  }
-
+int set_velocity_l(String command)
+{
+  // Get state from command
+  cmd_vel_l = command.toFloat();
+  Serial.println((double)cmd_vel_l);
+  return (int)cmd_vel_l;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -77,35 +50,14 @@ int readwrite_analog(const char *itemID, const opcOperation opcOP, const int val
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// common
+// common params
 double vel_to_effort = 3.1;
 double pulse_to_pos = 0.0184;
 unsigned long dt = 50; // ms
 pid_parameters_t pos_pid = {0.3, 0.3, 0.1, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort)};
 pid_parameters_t vel_pid = {0.3, 0.1, 0.05, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort)};
 
-// right
-motor_pin_map_t m_pins_r = {6, 4, 7, DUAL_DIRECTION_PIN}; // stop second motor
-encoder_pin_map_t e_pins_r = {20, 22};
-
-static encoded_motor_parameters_t motor_params_r = {
-  m_pins_r,
-  e_pins_r,
-  vel_to_effort,
-  pulse_to_pos,
-  dt,
-  pos_pid,
-  vel_pid
-};
-
-static EncodedMotorController motor_r(&motor_params_r);
-
-void ENC_ISR_R()
-{
-  motor_r.encoder_tick();
-}
-
-// left
+// left params
 motor_pin_map_t m_pins_l = {5, 3, 2, DUAL_DIRECTION_PIN};
 encoder_pin_map_t e_pins_l = {21, 19};
 
@@ -119,11 +71,30 @@ static encoded_motor_parameters_t motor_params_l = {
   vel_pid
 };
 
-static EncodedMotorController motor_l(&motor_params_l);
+// right params
+motor_pin_map_t m_pins_r = {6, 4, 7, DUAL_DIRECTION_PIN}; // stop second motor
+encoder_pin_map_t e_pins_r = {20, 22};
 
-void ENC_ISR_L()
+static encoded_motor_parameters_t motor_params_r = {
+  m_pins_r,
+  e_pins_r,
+  vel_to_effort,
+  pulse_to_pos,
+  dt,
+  pos_pid,
+  vel_pid
+};
+
+skid_motion_parameters_t motion_params = {
+  motor_params_l,
+  motor_params_r
+};
+
+static SkidMotionController motion_c(&motion_params);
+
+void ENC_ISR()
 {
-  motor_l.encoder_tick();
+  motion_c.encoder_tick();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -139,99 +110,71 @@ void setup()
 {
   Serial.begin(115200);
 
-  Serial.println("OPC interface and encoded motor controller test");
+  Serial.println("aREST interface and motion controller test");
 
-  motor_r.init();
-  motor_l.init();
+  motion_c.init();
 
-  motor_r.set_encoder_interrupt(INT0, ENC_ISR_R);
-  motor_l.set_encoder_interrupt(INT2, ENC_ISR_L);
+  motion_c.set_encoder_interrupts(INT0, INT2, ENC_ISR);
 
   uint16_t del = 2000;
 
   delay(del);
 
-  Serial.print("set control point: ");
-  Serial.println(setpoint);
-  motor_r.set_velocity(setpoint);
-  motor_l.set_velocity(setpoint);
+  Serial.println("setup aREST server");
 
-  Serial.println("setup OPC server");
+  rest.variable("vel_r", &velocity_r);
+  rest.variable("vel_l", &velocity_l);
 
-  byte k;
+  // Function to be exposed
+  rest.function("cmd_vel_r", set_velocity_r);
+  rest.function("cmd_vel_l", set_velocity_l);
 
-  for (k=0;k<14;k++) digital_status_input[k] = opc_opread;
-  for (k=0;k<5;k++)  analog_status_input[k] = opc_opread;
+  // Give name & ID to the device (ID should be 6 characters long)
+  rest.set_id("007");
+  rest.set_name("motion_c");
 
-  opc_interface_controller.setup(listen_port, mac, ip);
-
-  opc_interface_controller.addItem("D0",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D1",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D2",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D3",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D4",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D5",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D5",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D6",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D7",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D8",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D9",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D10",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D11",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D12",opc_readwrite, opc_bool, readwrite_digital);
-  opc_interface_controller.addItem("D13",opc_readwrite, opc_bool, readwrite_digital);
-
-  opc_interface_controller.addItem("A0",opc_readwrite, opc_int, readwrite_analog);
-  opc_interface_controller.addItem("A1",opc_readwrite, opc_int, readwrite_analog);
-  opc_interface_controller.addItem("A2",opc_readwrite, opc_int, readwrite_analog);
-  opc_interface_controller.addItem("A3",opc_readwrite, opc_int, readwrite_analog);
-  opc_interface_controller.addItem("A4",opc_readwrite, opc_int, readwrite_analog);
-  opc_interface_controller.addItem("A5",opc_readwrite, opc_int, readwrite_analog);
+  // Start the Ethernet connection and the server
+  Ethernet.begin(mac, ip);
+  server.begin();
+  Serial.print("server is at ");
+  Serial.println(Ethernet.localIP());
 
   Serial.println("begin motion");
 }
 
 void loop()
 {
-  opc_interface_controller.processOPCCommands();
-  // char inchar = 'f';
-  // while(inchar != 's')
-  // {
-  //   motor_r.update(); // run control loop
-  //   motor_l.update(); // run control loop
-  //
-  //   // view result
-  //   Serial.print(motor_r.get_position());
-  //   Serial.print(", ");
-  //   Serial.print(motor_r.get_velocity());
-  //   Serial.print(", ");
-  //   Serial.print(motor_r.get_vector_effort());
-  //   Serial.print(" : ");
-  //   Serial.print(motor_l.get_position());
-  //   Serial.print(", ");
-  //   Serial.print(motor_l.get_velocity());
-  //   Serial.print(", ");
-  //   Serial.println(motor_l.get_vector_effort());
-  //
-  //   delay(dt);
-  //
-  //   inchar = Serial.read();
-  //   if(inchar == 'i')
-  //   {
-  //     setpoint += 0.2;
-  //     motor_r.set_velocity(setpoint);
-  //     Serial.println(setpoint);
-  //   }
-  //   else if(inchar == 'k')
-  //   {
-  //     setpoint -= 0.2;
-  //     motor_r.set_velocity(setpoint);
-  //     Serial.println(setpoint);
-  //   }
-  // }
-  //
-  // motor_r.halt();
-  // motor_l.halt();
+  char inchar = 'f';
+  while(inchar != 's')
+  {
+    skid_motion_msg_t msg = motion_c.get_feedback();  // update feedback
+    velocity_l = msg.left_vel;
+    velocity_r = msg.right_vel;
+
+    // listen for incoming clients
+    EthernetClient client = server.available();
+    rest.handle(client);
+
+    motion_c.set_motion({cmd_vel_l, cmd_vel_r}); // update set points
+
+    motion_c.update(); // run control loop
+
+    // view result
+    Serial.print(velocity_l);
+    // Serial.print(", ");
+    // Serial.print(motor_r.get_vector_effort());
+    Serial.print(" : ");
+    Serial.print(velocity_r);
+    // Serial.print(", ");
+    // Serial.println(motor_l.get_vector_effort());
+    Serial.println();
+
+    delay(dt);
+
+    inchar = Serial.read();
+  }
+
+  motion_c.halt();
 
   // exit(0);
 }
