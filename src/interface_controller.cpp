@@ -92,3 +92,11 @@ void UDPInterfaceController::begin()
   Ethernet.begin(_udp_params->mac, _udp_params->ip_address);
   _udp.begin(_udp_params->port);
 }
+
+
+void UDPInterfaceController::_print(char * buf)
+{
+  int check = _udp.beginPacket(_udp.remoteIP(), _udp.remotePort());
+  _udp.write(buf);
+  _udp.endPacket();
+}

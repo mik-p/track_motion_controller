@@ -32,7 +32,7 @@ typedef struct
 typedef struct
 {
   uint8_t spi_cs;
-  byte mac[];
+  byte mac[6];
   IPAddress ip_address;
   unsigned int port;
 } udp_interface_parameters_t;
@@ -68,7 +68,6 @@ class SerialInterfaceController : public InterfaceController
 public:
   SerialInterfaceController(serial_interface_parameters_t * params);
   void begin() {_serial_params->serial_port->begin(_serial_params->baud_rate);}
-  // void show_buffer() {_print(_buffer);}
 
 protected:
   virtual void _print(char * buf) {_serial_params->serial_port->print(buf);}
@@ -89,11 +88,12 @@ public:
   UDPInterfaceController(udp_interface_parameters_t * params);
   void begin();
 
-private:
-  // void _print(const char * buf);
-  // int _receive_control_msg();
-  // void _send_feedback_msg();
+protected:
+  virtual void _print(char * buf);
+  virtual int _receive_control_msg() {}
+  virtual void _send_feedback_msg(char * buf, uint16_t len) {}
 
+private:
   udp_interface_parameters_t * _udp_params;
   EthernetUDP _udp;
   char _packet_buffer[UDP_TX_PACKET_MAX_SIZE];
