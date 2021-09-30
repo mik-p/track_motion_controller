@@ -3,29 +3,19 @@
 
 #include "motor_controller.h"
 
-motor_pin_map_t r_pins = {6, 4, 7, DUAL_DIRECTION_PIN}; // stop second motor
-static MotorController r_motor(&r_pins);
+using namespace tmc;
 
 // instantiate config and motor class
-motor_pin_map_t m_pin_map = {5, 3, 2, DUAL_DIRECTION_PIN};
-encoder_pin_map_t e_pin_map = {21, 19};
+AnalogAndDirMotor aad({ 5, 3, 2, AnalogAndDirMotor::AAD_DIR_PIN_OPT::DUAL });
+Encoder e({ 21, 19 });
+
 double vel_to_effort = 3.1;
 double pulse_to_pos = 0.0184;
-unsigned long dt = 50; // ms
-pid_parameters_t pos_pid = {0.3, 0.3, 0.1, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort)};
-pid_parameters_t vel_pid = {0.3, 0.1, 0.05, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort)};
+unsigned long dt = 50;  // ms
+PIDController::pid_parameters_t pos_pid = { 0.3, 0.3, 0.1, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort) };
+PIDController::pid_parameters_t vel_pid = { 0.3, 0.1, 0.05, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort) };
 
-static encoded_motor_parameters_t params = {
-  m_pin_map,
-  e_pin_map,
-  vel_to_effort,
-  pulse_to_pos,
-  dt,
-  pos_pid,
-  vel_pid
-};
-
-static EncodedMotorController em(&params);
+EncodedMotorController em({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid });
 
 // double pos_setpoint = 500;
 double setpoint = 0;
@@ -72,9 +62,9 @@ void setup()
 void loop()
 {
   char inchar = 'f';
-  while(inchar != 's')
+  while (inchar != 's')
   {
-    em.update(); // run control loop
+    em.update();  // run control loop
 
     // view result
     Serial.print(em.get_position());
@@ -86,14 +76,14 @@ void loop()
     delay(dt);
 
     inchar = Serial.read();
-    if(inchar == 'i')
+    if (inchar == 'i')
     {
       setpoint = 1;
       em.set_position(setpoint);
       // em.set_velocity(setpoint);
       Serial.println(setpoint);
     }
-    else if(inchar == 'k')
+    else if (inchar == 'k')
     {
       setpoint = -1;
       em.set_position(setpoint);
@@ -104,19 +94,19 @@ void loop()
 
   inchar = 'f';
   // while(!Serial.available()) {} // wait for verification test
-  while(inchar != 's')
+  while (inchar != 's')
   {
     em.stop();
 
     inchar = Serial.read();
-    if(inchar == 'i')
+    if (inchar == 'i')
     {
       setpoint++;
       em.set_position(setpoint);
       // em.set_velocity(setpoint);
       Serial.println(setpoint);
     }
-    else if(inchar == 'k')
+    else if (inchar == 'k')
     {
       setpoint--;
       em.set_position(setpoint);

@@ -3,178 +3,73 @@
 
 #include "motion_controller.h"
 
-#include <Ethernet.h>
-#include <aREST.h>
-
-////////////////////////////////////////////////////////////////////////////////
-
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-
-IPAddress ip(192, 168, 1, 177);
-// IPAddress gateway(192, 168, 10, 1);
-// IPAddress dns_server(192, 168, 0, 1);
-// IPAddress subnet(255,255,255,0);
-
-// Ethernet server
-EthernetServer server(80);
-
-// Create aREST instance
-aREST rest = aREST();
-
-// Variables to be exposed to the API
-double velocity_r;
-double velocity_l;
-
-double cmd_vel_r;
-double cmd_vel_l;
-
-// Custom function accessible by the API
-int set_velocity_r(String command)
-{
-  // Get state from command
-  cmd_vel_r = command.toFloat();
-  Serial.println((double)cmd_vel_r);
-  return (int)cmd_vel_r;
-}
-
-int set_velocity_l(String command)
-{
-  // Get state from command
-  cmd_vel_l = command.toFloat();
-  Serial.println((double)cmd_vel_l);
-  return (int)cmd_vel_l;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-////////////////////////////////////////////////////////////////////////////////
+using namespace tmc;
 
 // common params
 double vel_to_effort = 3.1;
 double pulse_to_pos = 0.0184;
-unsigned long dt = 50; // ms
-pid_parameters_t pos_pid = {0.3, 0.3, 0.1, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort)};
-pid_parameters_t vel_pid = {0.3, 0.1, 0.05, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort)};
+unsigned long dt = 50;  // ms
 
-// left params
-motor_pin_map_t m_pins_l = {5, 3, 2, DUAL_DIRECTION_PIN};
-encoder_pin_map_t e_pins_l = {21, 19};
+// collect all the connected hardware
+Encoder l_encoder({ 21, 19 });
+Encoder r_encoder({ 20, 22 });
 
-static encoded_motor_parameters_t motor_params_l = {
-  m_pins_l,
-  e_pins_l,
-  vel_to_effort,
-  pulse_to_pos,
-  dt,
-  pos_pid,
-  vel_pid
-};
-
-// right params
-motor_pin_map_t m_pins_r = {6, 4, 7, DUAL_DIRECTION_PIN}; // stop second motor
-encoder_pin_map_t e_pins_r = {20, 22};
-
-static encoded_motor_parameters_t motor_params_r = {
-  m_pins_r,
-  e_pins_r,
-  vel_to_effort,
-  pulse_to_pos,
-  dt,
-  pos_pid,
-  vel_pid
-};
-
-skid_motion_parameters_t motion_params = {
-  motor_params_l,
-  motor_params_r
-};
-
-static SkidMotionController motion_c(&motion_params);
-
-void ENC_ISR()
+// XXX TODO replace with macros??
+void L_ENC_ISR()
 {
-  motion_c.encoder_tick();
+  l_encoder.tick();
 }
 
-////////////////////////////////////////////////////////////////////////////////
+void R_ENC_ISR()
+{
+  r_encoder.tick();
+}
 
+// motors via aad hal
+AnalogAndDirMotor aad_l({ 5, 3, 2, AnalogAndDirMotor::AAD_DIR_PIN_OPT::DUAL });
+AnalogAndDirMotor aad_r({ 6, 4, 7, AnalogAndDirMotor::AAD_DIR_PIN_OPT::DUAL });
 
-// double pos_setpoint = 500;
-double setpoint = 0.5;
+// motor control intrinsics
+PIDController::pid_parameters_t pos_pid = { 0.3, 0.3, 0.1, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort) };
+PIDController::pid_parameters_t vel_pid = { 0.3, 0.1, 0.05, 0, 0, 0, 0, -(255 / vel_to_effort), (255 / vel_to_effort) };
 
-uint8_t start_effort = 60;
+// create an array of motor controllers
+EncodedMotorController emc_array[]{ EncodedMotorController({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid }),
+                                    EncodedMotorController({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid }) };
 
+// make an interface controller
+SerialInterfaceController interface_c(&Serial1, 9600);
+
+// make the motion controller
+SkidMotionController smc;
+
+// XXX TODO add LED feedback
 
 void setup()
 {
-  Serial.begin(115200);
+  // attach hardware classes to motor control interfaces
+  emc_array[0].init(&aad_l, &l_encoder);
+  emc_array[1].init(&aad_r, &r_encoder);
 
-  Serial.println("aREST interface and motion controller test");
+  // set encoder interrupts
+  l_encoder.set_tick_interrupt(INT0, L_ENC_ISR);
+  l_encoder.set_tick_interrupt(INT2, R_ENC_ISR);
 
-  motion_c.init();
-
-  motion_c.set_encoder_interrupts(INT0, INT2, ENC_ISR);
+  // setup the motion controller's interface references
+  smc.attach_hw_refs(&interface_c, emc_array, 2);
 
   uint16_t del = 2000;
 
   delay(del);
-
-  Serial.println("setup aREST server");
-
-  rest.variable("vel_r", &velocity_r);
-  rest.variable("vel_l", &velocity_l);
-
-  // Function to be exposed
-  rest.function("cmd_vel_r", set_velocity_r);
-  rest.function("cmd_vel_l", set_velocity_l);
-
-  // Give name & ID to the device (ID should be 6 characters long)
-  rest.set_id("007");
-  rest.set_name("motion_c");
-
-  // Start the Ethernet connection and the server
-  Ethernet.begin(mac, ip);
-  server.begin();
-  Serial.print("server is at ");
-  Serial.println(Ethernet.localIP());
-
-  Serial.println("begin motion");
 }
 
 void loop()
 {
-  char inchar = 'f';
-  while(inchar != 's')
-  {
-    skid_motion_msg_t msg = motion_c.get_feedback();  // update feedback
-    velocity_l = msg.left_vel;
-    velocity_r = msg.right_vel;
+  // run motion control at full speed
+  unsigned long start_time = millis();
 
-    // listen for incoming clients
-    EthernetClient client = server.available();
-    rest.handle(client);
+  smc.loop();
 
-    motion_c.set_motion({cmd_vel_l, cmd_vel_r}); // update set points
-
-    motion_c.update(); // run control loop
-
-    // view result
-    Serial.print(velocity_l);
-    // Serial.print(", ");
-    // Serial.print(motor_r.get_vector_effort());
-    Serial.print(" : ");
-    Serial.print(velocity_r);
-    // Serial.print(", ");
-    // Serial.println(motor_l.get_vector_effort());
-    Serial.println();
-
-    delay(dt);
-
-    inchar = Serial.read();
-  }
-
-  motion_c.halt();
-
-  // exit(0);
+  // delay the remaining time
+  delay(dt - (millis() - start_time));
 }

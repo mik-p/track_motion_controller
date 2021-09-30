@@ -3,9 +3,11 @@
 
 #include "encoder.h"
 
-static encoder_pin_map_t pin_map = {2, 4};
+using namespace tmc;
 
-static Encoder e = Encoder(&pin_map);
+Encoder::encoder_pin_map_t pin_map = { 2, 4 };
+
+Encoder e = Encoder(pin_map);
 
 double pos = 0;
 double vel = 0;
@@ -28,16 +30,16 @@ void setup()
   pinMode(3, OUTPUT);
   digitalWrite(3, LOW);
 
-  e.init(); // test init
+  e.init();  // test init
 
-  e.set_tick_interrupt(INT0, ENC_ISR); // test set interrupt
+  e.set_tick_interrupt(INT0, ENC_ISR);  // test set interrupt
 
   uint16_t del = 2000;
 
   delay(del);
 }
 
-void loop() // test get pos and vel
+void loop()  // test get pos and vel
 {
   t = millis();
 

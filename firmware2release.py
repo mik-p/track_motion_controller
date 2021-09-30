@@ -1,5 +1,5 @@
+import os
 from shutil import copyfile
-
 
 Import("env", "projenv")
 
@@ -11,13 +11,13 @@ defines = {k: v for (k, v) in my_flags.get("CPPDEFINES")}
 # name release target
 RELEASE_NAME = defines.get("RELEASE_NAME")
 RELEASE_DIR = defines.get("RELEASE_DIR")
-RELEASE_TARGET = "/".join([RELEASE_DIR, RELEASE_NAME + ".hex"])
+RELEASE_TARGET = os.path.join(RELEASE_DIR, RELEASE_NAME + ".hex")
 
 # get environment vars for built target
-PROJECTBUILD_DIR = env["PROJECTBUILD_DIR"]
+PROJECTBUILD_DIR = env["PROJECT_BUILD_DIR"]
 PIOENV = env["PIOENV"]
 PROGNAME = env["PROGNAME"]
-BUILD_TARGET = "/".join([PROJECTBUILD_DIR, PIOENV, PROGNAME + ".hex"])
+BUILD_TARGET = os.path.join(PROJECTBUILD_DIR, PIOENV, PROGNAME + ".hex")
 
 #print env.Dump()
 
