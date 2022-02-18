@@ -2,11 +2,17 @@
 
 #include <HardwareSerial.h>
 // #include <SPI.h>
+#ifndef TMC_E407
 #include <Ethernet.h>
+#else
+#include <LwIP.h>
+#include <STM32Ethernet.h>
+#endif
 #include <EthernetUdp.h>
 
 namespace tmc
 {
+#ifndef TMC_E407
 #ifndef BYTE_ORDER_UTIL_MACROS
 #define BYTE_ORDER_UTIL_MACROS
 
@@ -17,6 +23,7 @@ namespace tmc
   (((x) << 24 & 0xFF000000UL) | ((x) << 8 & 0x00FF0000UL) | ((x) >> 8 & 0x0000FF00UL) | ((x) >> 24 & 0x000000FFUL))
 #define ntohl(x) htonl(x)
 
+#endif
 #endif
 
 // defining a BIG_ENDIAN representation of our data (network byte order)
@@ -208,6 +215,10 @@ protected:
   float _control_data[INTERFACE_MAX_DATA_SIZE];
 };
 
+/**
+ * @brief serial based interface
+ *
+ */
 class SerialInterfaceController : public InterfaceController
 {
   // define read and write for serial interface
@@ -251,16 +262,23 @@ private:
   HardwareSerial* _port;
 };
 
+/**
+ * @brief udp network based interface
+ *
+ */
 class UDPInterfaceController : public InterfaceController
 {
+#define TMC_IC_UDP_INTERFACE_PORT 2021
   // define read and write for udp interface
 
 public:
   UDPInterfaceController(uint8_t spi_cs, uint8_t* mac, IPAddress ip_address)
   {
+#ifndef TMC_E407
     Ethernet.init(spi_cs);
+#endif
     Ethernet.begin(mac, ip_address);
-    _udp.begin(2021);
+    _udp.begin(TMC_IC_UDP_INTERFACE_PORT);
   }
 
 protected:

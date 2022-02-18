@@ -6,6 +6,8 @@
 
 #include "hw_defs.h"
 
+#include "motion_controller.h"
+
 using namespace tmc;
 
 // make the motion controller
@@ -18,13 +20,18 @@ SkidMotionController smc;
  */
 void setup()
 {
+#if defined(TMC_E407)
+  // begin config port
+  TMC_SERIAL_CONFIG.begin(115200);
+#endif
+
   // attach hardware classes to motor control interfaces
   emc_array[0].init(&l_motor, &l_encoder);
   emc_array[1].init(&r_motor, &r_encoder);
 
   // set encoder interrupts
-  l_encoder.set_tick_interrupt(INT0, L_ENC_ISR);
-  l_encoder.set_tick_interrupt(INT2, R_ENC_ISR);
+  l_encoder.set_tick_interrupt(L_ENC_PIN_INT, L_ENC_ISR);
+  l_encoder.set_tick_interrupt(R_ENC_PIN_INT, R_ENC_ISR);
 
   // setup the motion controller's interface references
   smc.attach_hw_refs(&interface_c, emc_array, 2);

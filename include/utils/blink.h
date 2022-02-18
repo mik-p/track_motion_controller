@@ -10,10 +10,10 @@
  */
 void blink(uint32_t ms)
 {
-    pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(ms);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(ms);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(ms);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(ms);
 }

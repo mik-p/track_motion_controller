@@ -17,7 +17,7 @@ USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
 #ifndef Sabertooth_h
-#define Sabertooth_h   
+#define Sabertooth_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>
@@ -28,7 +28,7 @@ typedef Print SabertoothStream;
 #endif
 
 #if defined(USBCON)
-#define SabertoothTXPinSerial Serial1 // Arduino Leonardo has TX->1 on Serial1, not Serial.
+#define SabertoothTXPinSerial Serial1  // Arduino Leonardo has TX->1 on Serial1, not Serial.
 #else
 #define SabertoothTXPinSerial Serial
 #endif
@@ -47,7 +47,7 @@ public:
   \param address The driver address.
   */
   Sabertooth(byte address);
-  
+
   /*!
   Initializes a new instance of the Sabertooth class.
   The driver address is set to the value given, and the specified serial port is used.
@@ -61,86 +61,94 @@ public:
   Gets the driver address.
   \return The driver address.
   */
-  inline byte address() const { return _address; }
-  
+  inline byte address() const
+  {
+    return _address;
+  }
+
   /*!
   Gets the serial port.
   \return The serial port.
   */
-  inline SabertoothStream& port() const { return _port; }
+  inline SabertoothStream& port() const
+  {
+    return _port;
+  }
 
   /*!
   Sends the autobaud character.
   \param dontWait If false, a delay is added to give the driver time to start up.
   */
-  void autobaud(boolean dontWait = false) const;
-  
+  void autobaud(bool dontWait = false) const;
+
   /*!
   Sends the autobaud character.
   \param port     The port to use.
   \param dontWait If false, a delay is added to give the driver time to start up.
   */
-  static void autobaud(SabertoothStream& port, boolean dontWait = false);
-  
+  static void autobaud(SabertoothStream& port, bool dontWait = false);
+
   /*!
   Sends a packet serial command to the motor driver.
   \param command The number of the command.
   \param value   The command's value.
   */
   void command(byte command, byte value) const;
-  
+
 public:
   /*!
   Sets the power of motor 1.
   \param power The power, between -127 and 127.
   */
   void motor(int power) const;
-  
+
   /*!
   Sets the power of the specified motor.
   \param motor The motor number, 1 or 2.
   \param power The power, between -127 and 127.
   */
   void motor(byte motor, int power) const;
-  
+
   /*!
   Sets the driving power.
   \param power The power, between -127 and 127.
   */
   void drive(int power) const;
-  
+
   /*!
   Sets the turning power.
   \param power The power, between -127 and 127.
   */
   void turn(int power) const;
-  
+
   /*!
   Stops.
   */
   void stop() const;
-  
+
 public:
   /*!
   Sets the minimum voltage.
-  \param value The voltage. The units of this value are driver-specific and are specified in the Packet Serial chapter of the driver's user manual.
+  \param value The voltage. The units of this value are driver-specific and are specified in the Packet Serial chapter
+  of the driver's user manual.
   */
   void setMinVoltage(byte value) const;
-  
+
   /*!
   Sets the maximum voltage.
   Maximum voltage is stored in EEPROM, so changes persist between power cycles.
-  \param value The voltage. The units of this value are driver-specific and are specified in the Packet Serial chapter of the driver's user manual.
+  \param value The voltage. The units of this value are driver-specific and are specified in the Packet Serial chapter
+  of the driver's user manual.
   */
   void setMaxVoltage(byte value) const;
-  
+
   /*!
   Sets the baud rate.
   Baud rate is stored in EEPROM, so changes persist between power cycles.
   \param baudRate The baud rate. This can be 2400, 9600, 19200, 38400, or on some drivers 115200.
   */
   void setBaudRate(long baudRate) const;
-  
+
   /*!
   Sets the deadband.
   Deadband is stored in EEPROM, so changes persist between power cycles.
@@ -150,14 +158,14 @@ public:
                0 resets to the default, which is 3.
   */
   void setDeadband(byte value) const;
-  
+
   /*!
   Sets the ramping.
   Ramping is stored in EEPROM, so changes persist between power cycles.
   \param value The ramping value. Consult the user manual for possible values.
   */
   void setRamping(byte value) const;
-  
+
   /*!
   Sets the serial timeout.
   \param milliseconds The maximum time in milliseconds between packets. If this time is exceeded,
@@ -167,13 +175,13 @@ public:
                       to make sure.
   */
   void setTimeout(int milliseconds) const;
-  
+
 private:
   void throttleCommand(byte command, int power) const;
-  
+
 private:
-  const byte        _address;
-  SabertoothStream& _port; 
+  const byte _address;
+  SabertoothStream& _port;
 };
 
 #endif

@@ -18,31 +18,33 @@ USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "Sabertooth.h"
 
-Sabertooth::Sabertooth(byte address)
-  : _address(address), _port(SabertoothTXPinSerial)
+Sabertooth::Sabertooth(byte address) : _address(address), _port(SabertoothTXPinSerial)
 {
-  
 }
 
-Sabertooth::Sabertooth(byte address, SabertoothStream& port)
-  : _address(address), _port(port)
+Sabertooth::Sabertooth(byte address, SabertoothStream& port) : _address(address), _port(port)
 {
-
 }
 
-void Sabertooth::autobaud(boolean dontWait) const
+void Sabertooth::autobaud(bool dontWait) const
 {
   autobaud(port(), dontWait);
 }
 
-void Sabertooth::autobaud(SabertoothStream& port, boolean dontWait)
+void Sabertooth::autobaud(SabertoothStream& port, bool dontWait)
 {
-  if (!dontWait) { delay(1500); }
+  if (!dontWait)
+  {
+    delay(1500);
+  }
   port.write(0xAA);
 #if defined(ARDUINO) && ARDUINO >= 100
   port.flush();
 #endif
-  if (!dontWait) { delay(500); }
+  if (!dontWait)
+  {
+    delay(500);
+  }
 }
 
 void Sabertooth::command(byte command, byte value) const
@@ -66,7 +68,10 @@ void Sabertooth::motor(int power) const
 
 void Sabertooth::motor(byte motor, int power) const
 {
-  if (motor < 1 || motor > 2) { return; }
+  if (motor < 1 || motor > 2)
+  {
+    return;
+  }
   throttleCommand((motor == 2 ? 4 : 0) + (power < 0 ? 1 : 0), power);
 }
 
@@ -88,12 +93,12 @@ void Sabertooth::stop() const
 
 void Sabertooth::setMinVoltage(byte value) const
 {
-  command(2, (byte)min(value, 120));
+  command(2, (byte)min(value, (byte)120));
 }
 
 void Sabertooth::setMaxVoltage(byte value) const
 {
-  command(3, (byte)min(value, 127));
+  command(3, (byte)min(value, (byte)127));
 }
 
 void Sabertooth::setBaudRate(long baudRate) const
@@ -105,18 +110,29 @@ void Sabertooth::setBaudRate(long baudRate) const
   byte value;
   switch (baudRate)
   {
-  case 2400:           value = 1; break;
-  case 9600: default: value = 2; break;
-  case 19200:          value = 3; break;
-  case 38400:          value = 4; break;
-  case 115200:         value = 5; break;
+    case 2400:
+      value = 1;
+      break;
+    case 9600:
+    default:
+      value = 2;
+      break;
+    case 19200:
+      value = 3;
+      break;
+    case 38400:
+      value = 4;
+      break;
+    case 115200:
+      value = 5;
+      break;
   }
   command(15, value);
-  
+
 #if defined(ARDUINO) && ARDUINO >= 100
   port().flush();
 #endif
-  
+
   // (1) flush() does not seem to wait until transmission is complete.
   //     As a result, a Serial.end() directly after this appears to
   //     not always transmit completely. So, we manually add a delay.
@@ -128,7 +144,7 @@ void Sabertooth::setBaudRate(long baudRate) const
 
 void Sabertooth::setDeadband(byte value) const
 {
-  command(17, (byte)min(value, 127));
+  command(17, (byte)min(value, (byte)127));
 }
 
 void Sabertooth::setRamping(byte value) const

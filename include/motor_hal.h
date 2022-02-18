@@ -82,7 +82,7 @@ public:
   {
     // filter input to logic values
     uint8_t dir;
-    if (new_dir >= MotorHAL::MOTOR_DIRECTION::FORWARD)
+    if (new_dir <= MotorHAL::MOTOR_DIRECTION::FORWARD)
     {
       dir = AAD_MOTOR_DIRECTION_FORWARD;
     }
@@ -101,39 +101,6 @@ public:
   void set_effort(const uint8_t& new_effort)
   {
     analogWrite(_pin_map.effort_pin, new_effort);
-  }
-
-protected:
-  motor_pin_map_t _pin_map;
-};
-
-/**
- * @brief sabretooth packet serial motor HAL
- *
- */
-class SabreToothHAL : public MotorHAL
-{
-public:
-  typedef struct
-  {
-    uint8_t tx_pin;
-  } motor_pin_map_t;
-
-public:
-  SabreToothHAL(const motor_pin_map_t& pin_map) : _pin_map(pin_map)
-  {
-  }
-
-  void init()
-  {
-  }
-
-  void set_effort(const uint8_t& new_effort)
-  {
-  }
-
-  void set_direction(const uint8_t& new_dir)
-  {
   }
 
 protected:

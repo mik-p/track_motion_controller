@@ -6,8 +6,8 @@
 #define VERSION "0.0.0"
 #endif
 
-#ifndef RELEASE_NAME
-#define RELEASE_NAME "unknown"
+#ifndef RELEASE_NAME_STR
+#define RELEASE_NAME_STR "unknown"
 #endif
 
 /**
@@ -16,14 +16,14 @@
  */
 void print_version(Stream* interface_)
 {
-    interface_->println();
-    interface_->print("firmware: ");
-    interface_->print(__FILE__);
-    interface_->print(" v");
-    interface_->println(VERSION);
-    interface_->print(__DATE__);
-    interface_->print(" ");
-    interface_->println(__TIME__);
-    interface_->print("name: ");
-    interface_->println(RELEASE_NAME);
+  interface_->println();
+  interface_->print("firmware: ");
+  interface_->print(__FILE__);
+  interface_->print(" v");
+  interface_->println(VERSION);
+  interface_->print(__DATE__);
+  interface_->print(" ");
+  interface_->println(__TIME__);
+  interface_->print("name: ");
+  interface_->println(RELEASE_NAME_STR);
 }
