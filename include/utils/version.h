@@ -14,11 +14,12 @@
  * @brief print firmware version details to the given stream interface
  *
  */
-void print_version(Stream* interface_)
+void print_version(Stream* interface_, const char* fname)
 {
   interface_->println();
+  interface_->println("---   MPO track motion controller   ---");
   interface_->print("firmware: ");
-  interface_->print(__FILE__);
+  interface_->print(fname);
   interface_->print(" v");
   interface_->println(VERSION);
   interface_->print(__DATE__);
@@ -26,4 +27,5 @@ void print_version(Stream* interface_)
   interface_->println(__TIME__);
   interface_->print("name: ");
   interface_->println(RELEASE_NAME_STR);
+  interface_->println();
 }

@@ -31,10 +31,23 @@ namespace tmc
 #define INTERFACE_MAX_DATA_SIZE 8
 #define INTERFACE_MAX_BUFFER_SIZE (INTERFACE_HEADER_SIZE + (INTERFACE_MAX_DATA_SIZE * sizeof(float)))
 
+// channel debug
+void debug_print_channel(const char* buf, const uint16_t len)
+{
+  for (uint16_t i = 0; i < len; i++)
+  {
+    TMC_SERIAL_CONFIG.print(buf[i], HEX);
+    TMC_SERIAL_CONFIG.print(' ');
+  }
+  TMC_SERIAL_CONFIG.println();
+}
+
 typedef struct
 {
   uint8_t status;      // 8 bits to use for status flags
   uint16_t loop_time;  // in milliseconds
+  // unsigned long cmd_time;   // command in controller time ms
+  // unsigned long fb_time;    // feedback in controller time ms
   uint16_t sequence;   // incrementing sequence number
   uint16_t length;     // data buffer length
   float* data;         // the data
@@ -65,6 +78,7 @@ public:
   {
     _feedback_msg.status = 0;
     _feedback_msg.loop_time = loop_time;
+    // _feedback_msg.fb_time = millis();
     _feedback_msg.length = 0;
     _feedback_msg.sequence++;             // increment sequence number
     _feedback_msg.data = _feedback_data;  // set to internal buffer
@@ -89,12 +103,26 @@ public:
     return _receive_control_msg();  // receive message from interface
   }
 
+  const bool accept_new_control_message()
+  {
+    if (_recvd_new_cntrl_msg)
+    {
+      // new message accepted and is no longer new
+      _recvd_new_cntrl_msg = false;
+      return true;
+    }
+
+    return false;
+  }
+
 protected:
   InterfaceController()
   {
     // init feedback msg
     _feedback_msg.status = 0;
     _feedback_msg.loop_time = 0;
+    // _feedback_msg.cmd_time = 0;
+    // _feedback_msg.fb_time = 0;
     _feedback_msg.length = 0;
     _feedback_msg.sequence = 0;
 
@@ -104,6 +132,9 @@ protected:
 
     memset(_feedback_msg.data, 0, INTERFACE_MAX_DATA_SIZE);
     memset(_control_msg.data, 0, INTERFACE_MAX_DATA_SIZE);
+
+    // no new messages
+    _recvd_new_cntrl_msg = false;
   }
 
   const uint16_t _serialise(char* buf, const uint16_t& len, const interface_msg_t& msg)
@@ -142,37 +173,45 @@ protected:
   {
     uint16_t result_len = 0;
 
-    if (len > INTERFACE_HEADER_SIZE)
+    if (!(len > INTERFACE_HEADER_SIZE))
     {
-      // first byte is status
-      _control_msg.status = buf[result_len++];
-
-      // second two bytes is loop time
-      _control_msg.loop_time = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
-      result_len++;
-      result_len++;
-
-      // third two bytes is sequence
-      _control_msg.sequence = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
-      result_len++;
-      result_len++;
-
-      // four two bytes is length
-      _control_msg.length = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
-      result_len++;
-      result_len++;
+      _recvd_new_cntrl_msg = false;
+      return &_control_msg;  // return ptr to control data
     }
+
+    // first byte is status
+    _control_msg.status = buf[result_len++];
+
+    // second two bytes is loop time
+    _control_msg.loop_time = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
+    result_len++;
+    result_len++;
+
+    // third two bytes is sequence
+    _control_msg.sequence = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
+    result_len++;
+    result_len++;
+
+    // four two bytes is length
+    _control_msg.length = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
+    result_len++;
+    result_len++;
 
     // the rest of data is sets of sizeof(float) length long
-    if (len - result_len == _control_msg.length * sizeof(float))
+    if (!(len - result_len == _control_msg.length * sizeof(float)))
     {
-      for (uint8_t i = 0; i < _control_msg.length; ++i)
-      {
-        memcpy((void*)&_control_msg.data[i], (void*)ntohl(*(long*)&buf[result_len]), sizeof(float));
-        result_len += sizeof(long);
-      }
+      _recvd_new_cntrl_msg = false;
+      return &_control_msg;  // return ptr to control data
     }
 
+    for (uint8_t i = 0; i < _control_msg.length; ++i)
+    {
+      memcpy((void*)&_control_msg.data[i], (void*)ntohl(*(long*)&buf[result_len]), sizeof(float));
+      result_len += sizeof(long);
+    }
+
+    // new valid message
+    _recvd_new_cntrl_msg = true;
     return &_control_msg;  // return ptr to control data
   }
 
@@ -186,7 +225,7 @@ protected:
     const uint16_t recv_len = _recv_buffer(buf, len);
 
     // deserialise the received data
-    interface_msg_t* msg_ptr = _deserialise(buf, len);
+    interface_msg_t* msg_ptr = _deserialise(buf, recv_len);
 
     return msg_ptr->length;
   }
@@ -198,10 +237,10 @@ protected:
     char buf[len];
 
     // serialise the msg into the buffer
-    len = _serialise(buf, len, _feedback_msg);
+    const uint16_t send_len = _serialise(buf, len, _feedback_msg);
 
     // send the buffer
-    _send_buffer(buf, len);
+    _send_buffer(buf, send_len);
   }
 
   // interface specific read and write calls
@@ -213,6 +252,8 @@ protected:
   interface_msg_t _control_msg, _feedback_msg;
   float _feedback_data[INTERFACE_MAX_DATA_SIZE];
   float _control_data[INTERFACE_MAX_DATA_SIZE];
+  // tracking recieved messages
+  bool _recvd_new_cntrl_msg;
 };
 
 /**
@@ -224,10 +265,14 @@ class SerialInterfaceController : public InterfaceController
   // define read and write for serial interface
 
 public:
-  SerialInterfaceController(HardwareSerial* ser, const unsigned int baud)
+  SerialInterfaceController(HardwareSerial* ser, const unsigned int baud) : _baud(baud)
   {
     _port = ser;
-    _port->begin(baud);
+  }
+
+  void init()
+  {
+    _port->begin(_baud);
   }
 
 protected:
@@ -235,6 +280,9 @@ protected:
   {
     _port->write(buf, len);
     _port->println();  // print a '\n' as a control character
+
+    // debug
+    // debug_print_channel(buf, len);
   }
 
   virtual const uint16_t _recv_buffer(char* buf, const uint16_t len)
@@ -260,6 +308,7 @@ protected:
 
 private:
   HardwareSerial* _port;
+  unsigned int _baud;
 };
 
 /**
@@ -269,32 +318,86 @@ private:
 class UDPInterfaceController : public InterfaceController
 {
 #define TMC_IC_UDP_INTERFACE_PORT 2021
+
   // define read and write for udp interface
 
 public:
-  UDPInterfaceController(uint8_t spi_cs, uint8_t* mac, IPAddress ip_address)
+  UDPInterfaceController(uint8_t spi_cs, uint8_t* mac, IPAddress ip_address) :
+  _spi_cs(spi_cs),
+  _local_mac(mac),
+  _local_ip(ip_address),
+  _remote_ip(0, 0, 0, 0),
+  _remote_port(TMC_IC_UDP_INTERFACE_PORT)
+  {
+  }
+
+  void init()
   {
 #ifndef TMC_E407
-    Ethernet.init(spi_cs);
+    Ethernet.init(_spi_cs);
 #endif
-    Ethernet.begin(mac, ip_address);
+    Ethernet.begin(_local_mac, _local_ip);
     _udp.begin(TMC_IC_UDP_INTERFACE_PORT);
   }
 
 protected:
   virtual void _send_buffer(const char* buf, const uint16_t len)
   {
-    int check = _udp.beginPacket(_udp.remoteIP(), _udp.remotePort());
+    int check = _udp.beginPacket(_remote_ip, _remote_port);
     _udp.write(buf, len);
     _udp.endPacket();
+
+    // debug
+    debug_print_channel(buf, len);
   }
 
   virtual const uint16_t _recv_buffer(char* buf, const uint16_t len)
   {
+    uint16_t write_len = 0;
+    char pckt_buf[UDP_TX_PACKET_MAX_SIZE];
+
+    // check port
+    int pckt_size = _udp.parsePacket();
+
+    // if message
+    if(pckt_size)
+    {
+      // get sender
+      _remote_ip = _udp.remoteIP();
+      _remote_port = _udp.remotePort();
+
+      // read the packet
+      _udp.read(pckt_buf, UDP_TX_PACKET_MAX_SIZE);
+
+      while(write_len < len)
+      {
+        char ch = pckt_buf[write_len];
+
+        // detect end control character
+        if (ch == '\n')
+        {
+          break;
+        }
+
+        // write serialised data to buffer
+        buf[write_len++] = ch;
+      }
+    }
+
+    return write_len;
   }
 
 private:
   EthernetUDP _udp;
+
+  // local
+  uint8_t _spi_cs;
+  uint8_t* _local_mac;
+  IPAddress _local_ip;
+
+  // remote
+  IPAddress _remote_ip;
+  uint16_t _remote_port;
 };
 
 }  // namespace tmc

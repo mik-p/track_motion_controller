@@ -36,19 +36,22 @@ public:
     _interface_ptr = interface_ptr;
   }
 
-  void loop()
+  uint16_t loop()
   {
     unsigned long start_time = millis();
+    unsigned long start_time_micros = micros();
 
     _last_command_time = assign_latest_joint_commands();
 
-    if (_last_command_time + _command_timeout > millis())
+    if (_last_command_time + (unsigned long)_command_timeout > millis())
     {
       update();
+      _is_timed_out = false;
     }
     else
     {
       halt();
+      _is_timed_out = true;
     }
 
     send_joint_feedback();
@@ -56,6 +59,9 @@ public:
     // measure time
     // the loop time will actually be sent in the next loop
     _loop_time = millis() - start_time;
+    _loop_time_micros = micros() - start_time_micros;
+
+    return _loop_time;
   }
 
   void halt()
@@ -64,6 +70,36 @@ public:
     {
       _joint_array_ptr[i].halt();
     }
+  }
+
+  // logging
+  const String get_log_string()
+  {
+    String log = "";
+
+    // fill a csv string with metrics
+    log += millis();
+    log += ", ";
+    log += _loop_time;
+    log += ", ";
+    log += _loop_time_micros;
+    log += ", ";
+    log += _last_command_time;
+    log += ", ";
+    log += _is_timed_out;
+    log += ", ";
+    log += _joint_array_length;
+    log += ", ";
+    for (uint8_t i = 0; i < _joint_array_length; ++i)
+    {
+      log += _joint_array_ptr[i].get_position();
+      log += ", ";
+      log += _joint_array_ptr[i].get_velocity();
+      log += ", ";
+    }
+
+    // return log string
+    return log;
   }
 
 protected:
@@ -81,15 +117,23 @@ protected:
 
   virtual unsigned int assign_latest_joint_commands()
   {
+    // get the latest message data
     interface_msg_t* msg = _interface_ptr->get_control_msg_ptr();
 
     for (uint8_t i = 0; i < _joint_array_length; ++i)
     {
-      // XXX TODO apply corrections
+      // XXX TODO: apply corrections
       _joint_array_ptr[i].set_velocity(msg->data[i]);
     }
 
-    return millis();
+    // if the message was new then update the command time
+    if (_interface_ptr->accept_new_control_message())
+    {
+      _last_command_time = millis();
+    }
+
+    // return the current command time
+    return _last_command_time;
   }
 
   virtual void send_joint_feedback()
@@ -119,8 +163,12 @@ protected:
 
   // timing measurements - in milliseconds
   uint16_t _loop_time;
+  uint16_t _loop_time_micros;
   unsigned long _last_command_time;
   uint16_t _command_timeout;
+
+  // logging measurements
+  bool _is_timed_out;
 
   // command interface
   InterfaceController* _interface_ptr;

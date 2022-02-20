@@ -23,7 +23,8 @@
 #define R_ENC_PIN_INT R_ENC_PIN_0
 // serial
 #define TMC_SERIAL_CONFIG Serial
-#define TMC_SERIAL_CONTROL Serial1
+// #define TMC_SERIAL_CONTROL Serial3
+#define TMC_SERIAL_CONTROL Serial6
 #else
 // motor pins
 #define L_MOTOR_PIN_0 5

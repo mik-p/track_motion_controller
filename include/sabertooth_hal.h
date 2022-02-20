@@ -10,6 +10,8 @@ namespace tmc
 /**
  * @brief Sabertooth packet serial motor HAL
  *
+ * driver uses packet protocol on a shared serial bus
+ *
  */
 class SaberToothHAL : public MotorHAL
 {
@@ -33,6 +35,7 @@ public:
 
   typedef struct
   {
+    HardwareSerial* st_port;
     uint8_t st_address;
     uint8_t st_motor_side;
   } st_driver_params_t;
@@ -40,25 +43,26 @@ public:
   static bool ST_AUTO_BAUD_COMPLETE;
 
 public:
-  SaberToothHAL(const motor_pin_map_t& pin_map, const st_driver_params_t& st_driver_params, HardwareSerial& st_port,
+  SaberToothHAL(const motor_pin_map_t& pin_map, const st_driver_params_t& st_driver_params,
                 const uint32_t& st_command_timeout = STHAL_COMMAND_TIMEOUT_DEFAULT)
     : _pin_map(pin_map)
     , _st_driver_params(st_driver_params)
     , _st_command_timeout(st_command_timeout)
-    , _st_driver_class(st_driver_params.st_address, (SabertoothStream&)st_port)
+    , _st_driver_class(st_driver_params.st_address, (SabertoothStream&)*(st_driver_params.st_port))
   {
-    // init serial port and set baud
-    if (!ST_AUTO_BAUD_COMPLETE)
-    {
-      st_port.begin(9600);
-      _st_driver_class.autobaud();
-      // set flag don't do this again
-      SaberToothHAL::ST_AUTO_BAUD_COMPLETE = true;
-    }
   }
 
   void init()
   {
+    // init serial port and set baud
+    if (!ST_AUTO_BAUD_COMPLETE)
+    {
+      _st_driver_params.st_port->begin(9600);
+      _st_driver_class.autobaud(true);
+      // set flag don't do this again
+      SaberToothHAL::ST_AUTO_BAUD_COMPLETE = true;
+    }
+
     // stop motors
     _st_driver_class.stop();
 
