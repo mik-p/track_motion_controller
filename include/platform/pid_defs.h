@@ -23,4 +23,5 @@ const unsigned long get_loop_time_remaining(const unsigned long& start_time)
 {
   return dt - (millis() - start_time);
 }
-}
+
+}  // namespace tmc

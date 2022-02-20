@@ -48,9 +48,9 @@ typedef struct
   uint16_t loop_time;  // in milliseconds
   // unsigned long cmd_time;   // command in controller time ms
   // unsigned long fb_time;    // feedback in controller time ms
-  uint16_t sequence;   // incrementing sequence number
-  uint16_t length;     // data buffer length
-  float* data;         // the data
+  uint16_t sequence;  // incrementing sequence number
+  uint16_t length;    // data buffer length
+  float* data;        // the data
 } interface_msg_t;
 
 /**
@@ -282,7 +282,9 @@ protected:
     _port->println();  // print a '\n' as a control character
 
     // debug
-    // debug_print_channel(buf, len);
+#if TMC_DEBUG_LOGGING
+    debug_print_channel(buf, len);
+#endif
   }
 
   virtual const uint16_t _recv_buffer(char* buf, const uint16_t len)
@@ -322,12 +324,12 @@ class UDPInterfaceController : public InterfaceController
   // define read and write for udp interface
 
 public:
-  UDPInterfaceController(uint8_t spi_cs, uint8_t* mac, IPAddress ip_address) :
-  _spi_cs(spi_cs),
-  _local_mac(mac),
-  _local_ip(ip_address),
-  _remote_ip(0, 0, 0, 0),
-  _remote_port(TMC_IC_UDP_INTERFACE_PORT)
+  UDPInterfaceController(uint8_t spi_cs, uint8_t* mac, IPAddress ip_address)
+    : _spi_cs(spi_cs)
+    , _local_mac(mac)
+    , _local_ip(ip_address)
+    , _remote_ip(0, 0, 0, 0)
+    , _remote_port(TMC_IC_UDP_INTERFACE_PORT)
   {
   }
 
@@ -348,7 +350,9 @@ protected:
     _udp.endPacket();
 
     // debug
+#if TMC_DEBUG_LOGGING
     debug_print_channel(buf, len);
+#endif
   }
 
   virtual const uint16_t _recv_buffer(char* buf, const uint16_t len)
@@ -360,7 +364,7 @@ protected:
     int pckt_size = _udp.parsePacket();
 
     // if message
-    if(pckt_size)
+    if (pckt_size)
     {
       // get sender
       _remote_ip = _udp.remoteIP();
@@ -369,7 +373,7 @@ protected:
       // read the packet
       _udp.read(pckt_buf, UDP_TX_PACKET_MAX_SIZE);
 
-      while(write_len < len)
+      while (write_len < len)
       {
         char ch = pckt_buf[write_len];
 

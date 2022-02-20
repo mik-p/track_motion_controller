@@ -24,4 +24,5 @@ void setup_interfaces()
 // make an interface controller
 SerialInterfaceController interface_c(&TMC_SERIAL_CONTROL, 9600);
 #endif
-}
+
+}  // namespace tmc

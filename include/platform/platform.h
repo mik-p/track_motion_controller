@@ -10,7 +10,10 @@
 namespace tmc
 {
 
+#ifndef TMC_DEBUG_LOGGING
 #define TMC_DEBUG_LOGGING 0
+#endif
+
 #define TMC_STARTUP_DELAY 1500
 
 /**
@@ -64,11 +67,9 @@ void tmc_loop()
   smc.loop();
 
   // logging
-  if(TMC_DEBUG_LOGGING)
-  {
-    TMC_SERIAL_CONFIG.print(smc.get_log_string());
-    TMC_SERIAL_CONFIG.println();
-  }
+#if TMC_DEBUG_LOGGING
+  TMC_SERIAL_CONFIG.println(str);
+#endif
 
   // delay the remaining time
   blink(get_loop_time_remaining(start_time) / 2);

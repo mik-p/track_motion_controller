@@ -27,4 +27,5 @@ void attach_encoder_interrupts()
   l_encoder.set_tick_interrupt(L_ENC_PIN_INT, L_ENC_ISR);
   r_encoder.set_tick_interrupt(R_ENC_PIN_INT, R_ENC_ISR);
 }
-}
+
+}  // namespace tmc

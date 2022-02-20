@@ -20,8 +20,10 @@ namespace tmc
 
 #if defined(TMC_E407)
 // motors via Saber hal
-SaberToothHAL l_motor({ L_MOTOR_PIN_0, L_MOTOR_PIN_1 }, { &STHAL_SERIALPORT_DEFAULT, TMC_STHAL_ADDRESS_1, STHAL_M1_INDEX });
-SaberToothHAL r_motor({ R_MOTOR_PIN_0, R_MOTOR_PIN_1 }, { &STHAL_SERIALPORT_DEFAULT, TMC_STHAL_ADDRESS_1, STHAL_M2_INDEX });
+SaberToothHAL l_motor({ L_MOTOR_PIN_0, L_MOTOR_PIN_1 },
+                      { &STHAL_SERIALPORT_DEFAULT, TMC_STHAL_ADDRESS_1, STHAL_M1_INDEX });
+SaberToothHAL r_motor({ R_MOTOR_PIN_0, R_MOTOR_PIN_1 },
+                      { &STHAL_SERIALPORT_DEFAULT, TMC_STHAL_ADDRESS_1, STHAL_M2_INDEX });
 
 // create an array of motor controllers
 EncodedMotorController emc_array[]{ EncodedMotorController({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid }),
@@ -43,4 +45,5 @@ AnalogAndDirMotor r_motor({ R_MOTOR_PIN_0, R_MOTOR_PIN_1, R_MOTOR_PIN_2, AnalogA
 EncodedMotorController emc_array[]{ EncodedMotorController({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid }),
                                     EncodedMotorController({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid }) };
 #endif
-}
+
+}  // namespace tmc
