@@ -68,7 +68,7 @@ void tmc_loop()
 
   // logging
 #if TMC_DEBUG_LOGGING
-  TMC_SERIAL_CONFIG.println(str);
+  TMC_SERIAL_CONFIG.println(smc.get_log_string());
 #endif
 
   // delay the remaining time

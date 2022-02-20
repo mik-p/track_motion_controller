@@ -4,12 +4,16 @@
 
 namespace tmc
 {
+#ifndef TMC_LOOP_HZ
+#define TMC_LOOP_HZ 20
+#endif
+
 #define TMC_PID_EFFORT_RANGE 255
 
 // common params
 const double vel_to_effort = 3.1;
 const double pulse_to_pos = 0.0184;
-const unsigned long dt = 50;  // ms
+const unsigned long dt = ((1 / TMC_LOOP_HZ) * 1000);  // ms
 
 // motor control intrinsics
 PIDController::pid_parameters_t pos_pid = {
