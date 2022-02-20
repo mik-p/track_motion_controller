@@ -1,1 +1,3 @@
 z pulse encoder
+config console
+move implementations to cpp files
