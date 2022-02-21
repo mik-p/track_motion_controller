@@ -6,6 +6,8 @@
 
 #include "utils/version.h"
 
+#include "platform/pid_defs.h"
+#include "platform/motor_defs.h"
 #include "platform/controller_defs.h"
 
 #include "console.h"
@@ -21,19 +23,115 @@ namespace tmc
 #define TMC_DEBUG_LOGGING 0
 #endif
 
-bool tmc_use_logging = TMC_DEBUG_LOGGING;
+bool tmc_use_logging = false;
+
+/**
+ * @brief console command functions
+ *
+ */
 
 // console set debug string on/off command
 int toggle_use_debug(int /*argc*/ = 0, char** /*argv*/ = NULL)
 {
   tmc_use_logging = !tmc_use_logging;
+  return EXIT_SUCCESS;
 }
 
 // console print version command
 int console_print_version(int /*argc*/ = 0, char** /*argv*/ = NULL)
 {
   print_version(&TMC_SERIAL_CONFIG, __FILE__);
-  return 0;
+  return EXIT_SUCCESS;
+}
+
+// set loop rate hz
+int set_loop_hz(int argc, char **argv)
+{
+  if (argc != 2) {
+    shell.println("bad argument count");
+    return -1;
+  }
+
+  unsigned long loop_hz = atoi(argv[1]);
+
+  if(loop_hz < 1 || loop_hz > 500)
+  {
+    shell.println("rate not in range");
+    return -1;
+  }
+
+  shell.print("Setting loop frequency to ");
+  shell.print(loop_hz);
+  shell.println("hz");
+
+  dt = ((double)(1.0 / loop_hz) * 1000);  // ms
+
+  smc.set_update_interval(dt);
+
+  return EXIT_SUCCESS;
+}
+
+// commands test motors
+// get top speed
+int mx_test_effort(int argc = 0, char** argv = NULL)
+{
+  if (argc != 2) {
+    shell.println("bad argument count");
+    return -1;
+  }
+
+  // which motor
+  unsigned long motor = atoi(argv[1]);
+
+  if(motor < 1 || motor > 2)
+  {
+    shell.println("motor not in range");
+    return -1;
+  }
+
+  shell.print("Testing motor ");
+  shell.print(motor);
+  shell.println("...");
+
+  // test max speed for 2 seconds
+  double speed = emc_array[motor-1].test_effort_response(MOTOR_EFFORT_MAX, 2000);
+
+  // print speed
+  shell.print("speed: ");
+  shell.println(speed);
+
+  return EXIT_SUCCESS;
+}
+
+// get speed to effort scalar
+int mx_tune(int argc = 0, char** argv = NULL)
+{
+  if (argc != 2) {
+    shell.println("bad argument count");
+    return -1;
+  }
+
+  // which motor
+  unsigned long motor = atoi(argv[1]);
+
+  if(motor < 1 || motor > 2)
+  {
+    shell.println("motor not in range");
+    return -1;
+  }
+
+  shell.print("Tuning motor ");
+  shell.print(motor);
+  shell.println("...");
+
+  // test max speed for 2 seconds
+  double veleff = emc_array[motor-1].tune_effort_scalar(MOTOR_EFFORT_MAX);
+
+  // print speed
+  shell.print("ratio: ");
+  shell.println(veleff);
+
+  return EXIT_SUCCESS;
 }
 
 #if TMC_USE_CONSOLE
@@ -55,7 +153,14 @@ void setup_console_commands()
   console.register_config(F("debug"), toggle_use_debug);
   // set comms config
   // set loop rate and other 'constants'
+  console.register_config(F("rate <loop_rate>"), set_loop_hz);
   // set pid variables
+
+  // run special control commands
+  // motor controls
+  console.register_config(F("mxeff <motor_id>"), mx_test_effort);
+  console.register_config(F("mxtune <motor_id>"), mx_tune);
+
 #endif
 }
 
@@ -82,7 +187,7 @@ void loop_log()
 #if TMC_DEBUG_LOGGING
   if (tmc_use_logging)
   {
-    TMC_SERIAL_CONFIG.println(smc.get_log_string());
+    TMC_SERIAL_CONFIG.println("TMC:DEBUG:" + smc.get_log_string());
   }
 #endif
 }

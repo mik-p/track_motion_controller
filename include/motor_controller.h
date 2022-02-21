@@ -23,6 +23,10 @@ public:
   void set_vector_effort(const double& new_effort);
   const double get_vector_effort();
 
+  virtual void set_loop_rate(const unsigned long& loop_rate)
+  {
+  }
+
 protected:
   MotorHAL* _motor_ptr;
   uint8_t _effort;
@@ -88,6 +92,11 @@ public:
   const double get_velocity()
   {
     return _velocity_controller->measurement();
+  }
+
+  virtual void set_update_interval(const unsigned long& update_interval)
+  {
+    _motor_params.update_interval = update_interval;
   }
 
 private:

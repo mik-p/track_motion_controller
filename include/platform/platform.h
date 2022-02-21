@@ -24,11 +24,11 @@ void tmc_setup(const char* fname)
   blink(100);
   blink(100);
 
-  // init
-  tmc_init_controller();
-
   // init console
   setup_console_commands();
+
+  // init
+  tmc_init_controller();
 
   // print version
   blink(TMC_STARTUP_DELAY);

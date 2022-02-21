@@ -72,31 +72,46 @@ public:
     }
   }
 
+  void set_update_interval(const unsigned long& update_interval)
+  {
+    for (uint8_t i = 0; i < _joint_array_length; ++i)
+    {
+      _joint_array_ptr[i].set_update_interval(update_interval);
+    }
+  }
+
   // logging
   const String get_log_string()
   {
     String log = "";
 
     // fill a csv string with metrics
+    // time
+    log += "TIME:";
     log += millis();
-    log += ", ";
+    log += ",";
     log += _loop_time;
-    log += ", ";
+    log += ",";
     log += _loop_time_micros;
-    log += ", ";
+    log += ",";
     log += _last_command_time;
-    log += ", ";
+    log += ",";
     log += _is_timed_out;
-    log += ", ";
+    log += ",";
+    // joints
+    log += "JOINT:";
     log += _joint_array_length;
-    log += ", ";
+    log += ",";
     for (uint8_t i = 0; i < _joint_array_length; ++i)
     {
       log += _joint_array_ptr[i].get_position();
-      log += ", ";
+      log += ",";
       log += _joint_array_ptr[i].get_velocity();
-      log += ", ";
+      log += ",";
     }
+    // comms
+    log += "COMM:";
+    log += _interface_ptr->get_log_string();
 
     // return log string
     return log;

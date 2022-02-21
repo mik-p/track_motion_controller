@@ -31,6 +31,11 @@ namespace tmc
 #define INTERFACE_MAX_DATA_SIZE 8
 #define INTERFACE_MAX_BUFFER_SIZE (INTERFACE_HEADER_SIZE + (INTERFACE_MAX_DATA_SIZE * sizeof(float)))
 
+#ifndef TMC_CHANNEL_LOGGING
+#define TMC_CHANNEL_LOGGING 0
+#endif
+
+#if TMC_CHANNEL_LOGGING
 // channel debug
 void debug_print_channel(const char* buf, const uint16_t len)
 {
@@ -41,6 +46,7 @@ void debug_print_channel(const char* buf, const uint16_t len)
   }
   TMC_SERIAL_CONFIG.println();
 }
+#endif
 
 typedef struct
 {
@@ -67,6 +73,65 @@ class InterfaceController
 public:
   ~InterfaceController()
   {
+  }
+
+  const String get_log_string()
+  {
+    String log = "";
+
+    // control message
+    log += _control_msg.status;
+    log += ",";
+    log += _control_msg.loop_time;
+    log += ",";
+    log += _control_msg.sequence;
+    log += ",";
+    log += _control_msg.length;
+    log += ",";
+    for (uint8_t i = 0; i < _control_msg.length; ++i)
+    {
+      log += _control_msg.data[i];
+      log += ",";
+    }
+
+    // feedback message
+    log += _feedback_msg.status;
+    log += ",";
+    log += _feedback_msg.loop_time;
+    log += ",";
+    log += _feedback_msg.sequence;
+    log += ",";
+    log += _feedback_msg.length;
+    log += ",";
+    for (uint8_t i = 0; i < _feedback_msg.length; ++i)
+    {
+      log += _feedback_msg.data[i];
+      log += ",";
+    }
+
+    // create buffers for messages
+    // uint16_t len = INTERFACE_MAX_BUFFER_SIZE;
+    // char cmd_buf[len];
+    // char fb_buf[len];
+
+    // serialise the msgs into buffers and add to log
+    // _serialise(cmd_buf, len, _control_msg);
+    // for (uint16_t i = 0; i < len; i++)
+    // {
+    //   log += (int)cmd_buf[i];
+    //   log += ' ';
+    // }
+
+    // log += ',';
+
+    // _serialise(fb_buf, len, _feedback_msg);
+    // for (uint16_t i = 0; i < len; i++)
+    // {
+    //   log += (int)fb_buf[i];
+    //   log += ' ';
+    // }
+
+    return log;
   }
 
   interface_msg_t* get_control_msg_ptr()
@@ -282,7 +347,7 @@ protected:
     _port->println();  // print a '\n' as a control character
 
     // debug
-#if TMC_DEBUG_LOGGING
+#if TMC_CHANNEL_LOGGING
     debug_print_channel(buf, len);
 #endif
   }
@@ -350,7 +415,7 @@ protected:
     _udp.endPacket();
 
     // debug
-#if TMC_DEBUG_LOGGING
+#if TMC_CHANNEL_LOGGING
     debug_print_channel(buf, len);
 #endif
   }
