@@ -2,18 +2,15 @@
 
 #include <Arduino.h>
 
-#include "utils/version.h"
 #include "utils/blink.h"
 
 #include "platform/controller_defs.h"
+#include "platform/console_defs.h"
 
 namespace tmc
 {
 
-#ifndef TMC_DEBUG_LOGGING
-#define TMC_DEBUG_LOGGING 0
-#endif
-
+// start up delay
 #define TMC_STARTUP_DELAY 1500
 
 /**
@@ -23,11 +20,6 @@ namespace tmc
  */
 void tmc_setup(const char* fname)
 {
-#if defined(TMC_E407)
-  // begin config port
-  TMC_SERIAL_CONFIG.begin(115200);
-//   TMC_SERIAL_CONTROL.begin(115200);
-#endif
   // say hi
   blink(100);
   blink(100);
@@ -35,19 +27,15 @@ void tmc_setup(const char* fname)
   // init
   tmc_init_controller();
 
-  // start up delay
-  uint16_t del = TMC_STARTUP_DELAY;
+  // init console
+  setup_console_commands();
 
   // print version
-  blink(del);
+  blink(TMC_STARTUP_DELAY);
+  log_show_version(fname);
 
-  TMC_SERIAL_CONFIG.println("---   ###   ---");
-  print_version(&TMC_SERIAL_CONFIG, fname);
-
-  blink(del);
-
-  print_version(&TMC_SERIAL_CONFIG, fname);
-  TMC_SERIAL_CONFIG.println("---   ###   ---");
+  blink(TMC_STARTUP_DELAY);
+  log_show_version(fname);
 }
 
 /**
@@ -67,9 +55,10 @@ void tmc_loop()
   smc.loop();
 
   // logging
-#if TMC_DEBUG_LOGGING
-  TMC_SERIAL_CONFIG.println(smc.get_log_string());
-#endif
+  loop_log();
+
+  // check config shell
+  loop_console();
 
   // delay the remaining time
   blink(get_loop_time_remaining(start_time) / 2);

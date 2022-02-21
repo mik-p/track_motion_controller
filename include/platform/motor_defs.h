@@ -44,6 +44,14 @@ AnalogAndDirMotor r_motor({ R_MOTOR_PIN_0, R_MOTOR_PIN_1, R_MOTOR_PIN_2, AnalogA
 // create an array of motor controllers
 EncodedMotorController emc_array[]{ EncodedMotorController({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid }),
                                     EncodedMotorController({ vel_to_effort, pulse_to_pos, dt, pos_pid, vel_pid }) };
+
+void setup_motors()
+{
+  // attach hardware classes to motor control interfaces
+  emc_array[0].init(&l_motor, &l_encoder);
+  emc_array[1].init(&r_motor, &r_encoder);
+}
+
 #endif
 
 }  // namespace tmc

@@ -23,6 +23,13 @@ void setup_interfaces()
 #else
 // make an interface controller
 SerialInterfaceController interface_c(&TMC_SERIAL_CONTROL, 9600);
+
+// setup interfaces
+void setup_interfaces()
+{
+  interface_c.init();
+}
+
 #endif
 
 }  // namespace tmc

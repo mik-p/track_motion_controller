@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+#include <SimpleSerialShell.h>
+
 namespace tmc
 {
 
@@ -9,38 +11,51 @@ namespace tmc
  * @brief console emulator to interact with configuration options for controller
  *
  */
-class console
+class Console
 {
 public:
-    console(HardwareSerial* ser, unsigned int baud) : _console(ser), _baud(baud)
-    {
-    }
+  Console(USBSerial* ser, unsigned int baud) : _console((Stream*)ser), _baud(baud)
+  {
+  }
 
-    void init()
-    {
-        _console->begin(_baud);
-    }
+  Console(HardwareSerial* ser, unsigned int baud) : _console((Stream*)ser), _baud(baud)
+  {
+  }
 
-    /**
-     * @brief register a config options and callback
-     *
-     */
-    void register_config()
-    {
-    }
+  void init(USBSerial* ser)
+  {
+    ser->begin(_baud);
+    shell.attach(*_console);
+  }
 
-    /**
-     * @brief loop the console and operate on provided options
-     *
-     */
-    void loop()
-    {
+  void init(HardwareSerial* ser)
+  {
+    ser->begin(_baud);
+    shell.attach(*_console);
+  }
 
-    }
+  /**
+   * @brief register a config options and callback
+   *
+   */
+  void register_config(const __FlashStringHelper* name, SimpleSerialShell::CommandFunction f)
+  {
+    shell.addCommand(name, f);
+  }
+
+  /**
+   * @brief loop the console and operate on provided options
+   *
+   */
+  void loop()
+  {
+    // execute shell command if any
+    shell.executeIfInput();
+  }
 
 private:
-    HardwareSerial* _console;
-    unsigned int _baud;
+  Stream* _console;
+  unsigned int _baud;
 };
 
-}
+}  // namespace tmc
