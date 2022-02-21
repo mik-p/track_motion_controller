@@ -1,3 +1,4 @@
 z pulse encoder
 config console
 move implementations to cpp files
+E_STOP
