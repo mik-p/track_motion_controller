@@ -45,16 +45,17 @@ int console_print_version(int /*argc*/ = 0, char** /*argv*/ = NULL)
 }
 
 // set loop rate hz
-int set_loop_hz(int argc, char **argv)
+int set_loop_hz(int argc, char** argv)
 {
-  if (argc != 2) {
+  if (argc != 2)
+  {
     shell.println("bad argument count");
     return -1;
   }
 
   unsigned long loop_hz = atoi(argv[1]);
 
-  if(loop_hz < 1 || loop_hz > 500)
+  if (loop_hz < 1 || loop_hz > 500)
   {
     shell.println("rate not in range");
     return -1;
@@ -75,7 +76,8 @@ int set_loop_hz(int argc, char **argv)
 // get top speed
 int mx_test_effort(int argc = 0, char** argv = NULL)
 {
-  if (argc != 2) {
+  if (argc != 2)
+  {
     shell.println("bad argument count");
     return -1;
   }
@@ -83,7 +85,7 @@ int mx_test_effort(int argc = 0, char** argv = NULL)
   // which motor
   unsigned long motor = atoi(argv[1]);
 
-  if(motor < 1 || motor > 2)
+  if (motor < 1 || motor > 2)
   {
     shell.println("motor not in range");
     return -1;
@@ -94,7 +96,7 @@ int mx_test_effort(int argc = 0, char** argv = NULL)
   shell.println("...");
 
   // test max speed for 2 seconds
-  double speed = emc_array[motor-1].test_effort_response(MOTOR_EFFORT_MAX, 2000);
+  double speed = emc_array[motor - 1].test_effort_response(MOTOR_EFFORT_MAX, 2000);
 
   // print speed
   shell.print("speed: ");
@@ -106,7 +108,8 @@ int mx_test_effort(int argc = 0, char** argv = NULL)
 // get speed to effort scalar
 int mx_tune(int argc = 0, char** argv = NULL)
 {
-  if (argc != 2) {
+  if (argc != 2)
+  {
     shell.println("bad argument count");
     return -1;
   }
@@ -114,7 +117,7 @@ int mx_tune(int argc = 0, char** argv = NULL)
   // which motor
   unsigned long motor = atoi(argv[1]);
 
-  if(motor < 1 || motor > 2)
+  if (motor < 1 || motor > 2)
   {
     shell.println("motor not in range");
     return -1;
@@ -125,7 +128,7 @@ int mx_tune(int argc = 0, char** argv = NULL)
   shell.println("...");
 
   // test max speed for 2 seconds
-  double veleff = emc_array[motor-1].tune_effort_scalar(MOTOR_EFFORT_MAX);
+  double veleff = emc_array[motor - 1].tune_effort_scalar(MOTOR_EFFORT_MAX);
 
   // print speed
   shell.print("ratio: ");
