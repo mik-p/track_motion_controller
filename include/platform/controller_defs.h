@@ -21,7 +21,7 @@ void tmc_init_controller()
 
   // setup the motion controller's interface and motor references
   setup_interfaces();
-  smc.attach_hw_refs(&interface_c, emc_array, 2);
+  smc.attach_hw_refs(&interface_c, emc_array, 4);
 }
 
 }  // namespace tmc

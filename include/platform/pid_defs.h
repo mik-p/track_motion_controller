@@ -36,6 +36,18 @@ PIDController::pid_parameters_t vel_pid = { TMC_VEL_PID_KP,
                                             0,
                                             -(TMC_PID_EFFORT_RANGE / vel_to_effort),
                                             (TMC_PID_EFFORT_RANGE / vel_to_effort) };
+// left
+PIDController::pid_parameters_t l_pos_pid = pos_pid;
+PIDController::pid_parameters_t l_vel_pid = vel_pid;
+// right
+PIDController::pid_parameters_t r_pos_pid = pos_pid;
+PIDController::pid_parameters_t r_vel_pid = vel_pid;
+// left back
+PIDController::pid_parameters_t lb_pos_pid = pos_pid;
+PIDController::pid_parameters_t lb_vel_pid = vel_pid;
+// right back
+PIDController::pid_parameters_t rb_pos_pid = pos_pid;
+PIDController::pid_parameters_t rb_vel_pid = vel_pid;
 
 const unsigned long get_loop_time_remaining(const unsigned long& start_time)
 {

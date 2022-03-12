@@ -34,6 +34,33 @@ protected:
 };
 
 /**
+ * @brief null motor means that it is not controllable
+ *
+ */
+class NullMotor : public MotorHAL
+{
+public:
+  NullMotor() : is_null(true)
+  {
+  }
+
+  virtual void init()
+  {
+  }
+
+  virtual void set_direction(const MOTOR_DIRECTION& new_dir)
+  {
+  }
+
+  virtual void set_effort(const uint8_t& new_effort)
+  {
+  }
+
+private:
+  bool is_null;
+};
+
+/**
  * @brief a commonly used analog effort and digital direction interface
  *
  */
