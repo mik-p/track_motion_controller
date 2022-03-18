@@ -10,18 +10,18 @@
 #endif
 // motor pins
 #define L_MOTOR_PIN_0 PB6 // tx D1
-#define L_MOTOR_PIN_1 PD4 // (e stop)
+#define L_MOTOR_PIN_1 PD1 // (e stop)
 #define R_MOTOR_PIN_0 PB6 // tx D1
-#define R_MOTOR_PIN_1 PD4 // (e stop)
+#define R_MOTOR_PIN_1 PD1 // (e stop)
 // encoder pins
-#define L_ENC_PIN_0 PD7
-#define L_ENC_PIN_1 PD8
-#define R_ENC_PIN_0 PD9
-#define R_ENC_PIN_1 PD10
-#define LB_ENC_PIN_0 PD11
-#define LB_ENC_PIN_1 PD12
-#define RB_ENC_PIN_0 PD13
-#define RB_ENC_PIN_1 PD14
+#define R_ENC_PIN_0 PD4
+#define R_ENC_PIN_1 PD5
+#define L_ENC_PIN_0 PD6
+#define L_ENC_PIN_1 PD7
+#define RB_ENC_PIN_0 PD8
+#define RB_ENC_PIN_1 PD9
+#define LB_ENC_PIN_0 PD10
+#define LB_ENC_PIN_1 PD11
 // interrupt pins
 #define L_ENC_PIN_INT L_ENC_PIN_0
 #define R_ENC_PIN_INT R_ENC_PIN_0
