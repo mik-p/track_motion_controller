@@ -13,6 +13,7 @@
 #define L_MOTOR_PIN_1 PD1 // (e stop)
 #define R_MOTOR_PIN_0 PB6 // tx D1
 #define R_MOTOR_PIN_1 PD1 // (e stop)
+#define E_STOP_PIN L_MOTOR_PIN_1 // (e stop)
 // encoder pins
 #define R_ENC_PIN_0 PD4
 #define R_ENC_PIN_1 PD5

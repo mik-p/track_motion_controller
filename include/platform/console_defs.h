@@ -74,6 +74,31 @@ int set_loop_hz(int argc, char** argv)
   return EXIT_SUCCESS;
 }
 
+// command test e-stop
+int set_estop(int argc = 0, char** argv = NULL)
+{
+  if (argc != 2)
+  {
+    shell.println("bad argument count");
+    return -1;
+  }
+
+  // which setting
+  unsigned long estop = atoi(argv[1]);
+
+  if (estop < 0 || estop > 1)
+  {
+    shell.println("0 or 1");
+    return -1;
+  }
+
+  shell.print("set e-stop ");
+  shell.println(estop);
+  digitalWrite(E_STOP_PIN, estop);
+
+  return EXIT_SUCCESS;
+}
+
 // commands test encoders
 // get encoder counts
 int run_enc_test_loop(int argc = 0, char** argv = NULL)
@@ -208,6 +233,8 @@ void setup_console_commands()
   // set pid variables
 
   // run special control commands
+  // set e-stop
+  console.register_config(F("estop <val>"), set_estop);
   // encoder tests
   console.register_config(F("encloop <enc_id>"), run_enc_test_loop);
   // motor controls
