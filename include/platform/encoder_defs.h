@@ -9,32 +9,51 @@ namespace tmc
 // collect all the connected hardware
 Encoder l_encoder({ L_ENC_PIN_0, L_ENC_PIN_1 });
 Encoder r_encoder({ R_ENC_PIN_0, R_ENC_PIN_1 });
+#if defined(TMC_E407)
 Encoder lb_encoder({ LB_ENC_PIN_0, LB_ENC_PIN_1 });
 Encoder rb_encoder({ RB_ENC_PIN_0, RB_ENC_PIN_1 });
 
+Encoder *enc_ptr_arr[] = {
+  &r_encoder,
+  &l_encoder,
+  &rb_encoder,
+  &lb_encoder
+};
+#else
+Encoder *enc_ptr_arr[] = {
+  &l_encoder,
+  &r_encoder
+};
+#endif
+
 // XXX TODO: replace with macros??
+volatile bool debug_enc_isr_trig_arr[4] = {false};
 void L_ENC_ISR()
 {
+  debug_enc_isr_trig_arr[1] = true;
   l_encoder.tick();
 }
 
 void R_ENC_ISR()
 {
+  debug_enc_isr_trig_arr[0] = true;
   r_encoder.tick();
 }
 
 #if defined(TMC_E407)
 void LB_ENC_ISR()
 {
+  debug_enc_isr_trig_arr[3] = true;
   lb_encoder.tick();
 }
 
 void RB_ENC_ISR()
 {
+  debug_enc_isr_trig_arr[2] = true;
   rb_encoder.tick();
 }
-
 #endif
+
 // set encoder interrupts
 void attach_encoder_interrupts()
 {

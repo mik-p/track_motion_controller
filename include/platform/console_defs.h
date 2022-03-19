@@ -7,8 +7,10 @@
 #include "utils/version.h"
 
 #include "platform/pid_defs.h"
+#include "platform/encoder_defs.h"
 #include "platform/motor_defs.h"
 #include "platform/controller_defs.h"
+#include "platform/interface_defs.h"
 
 #include "console.h"
 
@@ -68,6 +70,52 @@ int set_loop_hz(int argc, char** argv)
   dt = ((double)(1.0 / loop_hz) * 1000);  // ms
 
   smc.set_update_interval(dt);
+
+  return EXIT_SUCCESS;
+}
+
+// commands test encoders
+// get encoder counts
+int run_enc_test_loop(int argc = 0, char** argv = NULL)
+{
+  if (argc != 2)
+  {
+    shell.println("bad argument count");
+    return -1;
+  }
+
+  // which encoder
+  unsigned long enc = atoi(argv[1]);
+
+  if (enc < 1 || enc > 4)
+  {
+    shell.println("encoder not in range");
+    return -1;
+  }
+
+  shell.print("Testing encoder ");
+  shell.print(enc);
+  shell.println("...");
+
+  // read out encoder pulses
+  char inchar = shell.read();
+  while(inchar != 'q')
+  {
+    shell.print("ENC");
+    shell.print(enc);
+    shell.print(":");
+    shell.print(enc_ptr_arr[enc - 1]->get_log_string());
+    shell.print(debug_enc_isr_trig_arr[enc - 1]);
+    shell.println("\t'q' to quit");
+
+    debug_enc_isr_trig_arr[enc - 1] = false;
+
+    inchar = shell.read();
+
+    delay(100);
+  }
+
+  shell.println();
 
   return EXIT_SUCCESS;
 }
@@ -160,6 +208,8 @@ void setup_console_commands()
   // set pid variables
 
   // run special control commands
+  // encoder tests
+  console.register_config(F("encloop <enc_id>"), run_enc_test_loop);
   // motor controls
   console.register_config(F("mxeff <motor_id>"), mx_test_effort);
   console.register_config(F("mxtune <motor_id>"), mx_tune);

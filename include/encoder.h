@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdint.h>
+#include <Arduino.h>
+// #include <stdint.h>
 
 namespace tmc
 {
@@ -47,6 +48,20 @@ public:
   const double get_displacement(const double& pos_i, const double& pulse_to_pos);  // calculate displacement given pos
                                                                                    // and pulse to radian conversion
   const double get_velocity(const double& disp, const double& delta_t);  // calculate velocity given disp & timestep
+
+  // debug string
+  const String get_log_string()
+  {
+    String log = "";
+
+    log += digitalRead(_pin_map.A_phase_pin);
+    log += ",";
+    log += digitalRead(_pin_map.B_phase_pin);
+    log += ",";
+    log += get_pulses();
+
+    return log;
+  }
 
 private:
   encoder_pin_map_t _pin_map;

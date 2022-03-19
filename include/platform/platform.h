@@ -11,7 +11,7 @@ namespace tmc
 {
 
 // start up delay
-#define TMC_STARTUP_DELAY 1500
+#define TMC_STARTUP_DELAY 1000
 
 /**
  * @brief arduinos setup function

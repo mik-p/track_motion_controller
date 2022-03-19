@@ -1,8 +1,6 @@
 
 #include "encoder.h"
 
-#include <Arduino.h>
-
 namespace tmc
 {
 Encoder::Encoder(const encoder_pin_map_t& pin_map)
