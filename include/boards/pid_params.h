@@ -3,16 +3,26 @@
 namespace tmc
 {
 #if defined(TMC_E407)
-#define TMC_POS_PID_KP 0.3
-#define TMC_POS_PID_KI 0.3
+// position pid variables
+#define TMC_POS_PID_KP 14.0
+#define TMC_POS_PID_KI 0.0
 #define TMC_POS_PID_KD 0.0
-#define TMC_VEL_PID_KP 0.3
-#define TMC_VEL_PID_KI 0.1
+// velocity pid variables
+#define TMC_VEL_PID_KP 0.9
+#define TMC_VEL_PID_KI 3.5
 #define TMC_VEL_PID_KD 0.0
-#define TMC_ENC_PPR 200 // 200 ppr
-#define TMC_MOT_GEAR_RATIO 35 // 35:1
-#define TMC_PID_VEL_TO_EFF 3.1 // XXX TODO: (max_vel - min_vel) / (max_eff - min_eff) ??
-#define TMC_PID_PULSE_TO_POS 0.0184 // XXX TODO: (wheel_revs / (mot_revs * enc_ppr)) ??
+// encoder pulses per revolution
+#define TMC_ENC_PPR 48 // 48 ppr
+// motor gear ratio
+#define TMC_MOT_GEAR_RATIO 37.8 // 38:1 - 40:1 supposed to be
+// pulses per revolution at output shaft
+#define TMC_WHEEL_PPR 1814.4 // mot_gear_ratio * enc_ppr
+// convert from rad velocity and nominal effort scalar
+#define TMC_PID_VEL_TO_EFF 357.1428571429 // max_eff / max_vel
+// radial increment per pulse (arc length)
+#define TMC_PID_PULSE_TO_POS 0.000551146 // (wheel_revs / (mot_revs * enc_ppr))
+// linear position per pulse (includes wheel size)
+#define TMC_PID_PULSE_TO_POS_LIN 0.0005522487 // (2 * pi * wheel_rad / (mot_gear_ratio * enc_ppr)) ??
 #else
 #define TMC_POS_PID_KP 0.3
 #define TMC_POS_PID_KI 0.3

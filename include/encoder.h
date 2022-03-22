@@ -66,6 +66,7 @@ public:
 private:
   encoder_pin_map_t _pin_map;
   volatile uint8_t _A_phase_last;    // last value of A phase
+  volatile uint8_t _B_phase_last;    // last value of B phase
   volatile int8_t _direction;        // rotation direction (defined by B phase)
   volatile int32_t _encoder_pulses;  // number of encoder pulses (rolls over)
 };

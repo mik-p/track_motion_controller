@@ -19,38 +19,35 @@ void Encoder::init()
 
 void Encoder::tick()
 {
-  uint8_t A_phase_current = digitalRead(_pin_map.A_phase_pin);  // read new A phase
+  uint8_t A_phase_current = digitalReadFast(digitalPinToPinName(_pin_map.A_phase_pin));  // read new A phase
+  uint8_t B_phase_current = digitalReadFast(digitalPinToPinName(_pin_map.B_phase_pin));  // read new B phase
 
-  if ((_A_phase_last == LOW) && (A_phase_current == HIGH))  // add some jitter tolerance ??
-  {
-    uint8_t B_phase_current = digitalRead(_pin_map.B_phase_pin);  // read new B phase
-
+  // if positive transition
+  // if ((_A_phase_last == LOW) && (A_phase_current == HIGH))  // add some jitter tolerance ??
+  // {
     // update direction on change of B phase
-    if ((B_phase_current == LOW) && (_direction == ENCODER_POSITIVE_DIR))
+    // if ((B_phase_current == LOW) && (_direction == ENCODER_POSITIVE_DIR))
+    if ((B_phase_current == LOW))
     {
       _direction = ENCODER_NEGATIVE_DIR;  // Reverse
+      // update encoder pulse count
+      _encoder_pulses--;
     }
-    else if ((B_phase_current == HIGH) && (_direction == ENCODER_NEGATIVE_DIR))
+    // else if ((B_phase_current == HIGH) && (_direction == ENCODER_NEGATIVE_DIR))
+    else
     {
       _direction = ENCODER_POSITIVE_DIR;  // Forward
+      _encoder_pulses++;
     }
-  }
+  // }
 
   _A_phase_last = A_phase_current;  // update last A phase
-
-  if (_direction == ENCODER_POSITIVE_DIR)  // update encoder pulse count
-  {
-    _encoder_pulses++;
-  }
-  else
-  {
-    _encoder_pulses--;
-  }
+  _B_phase_last = B_phase_current;  // update last B phase
 }
 
 void Encoder::set_tick_interrupt(uint8_t interrupt, void (*tick_isr)())
 {
-  attachInterrupt(interrupt, tick_isr, CHANGE);  // set interrupt on change of value
+  attachInterrupt(interrupt, tick_isr, RISING);  // set interrupt on change of value
 }
 
 const double Encoder::get_displacement(const double& pos_i, const double& pulse_to_pos)

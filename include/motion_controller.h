@@ -36,16 +36,32 @@ public:
     _interface_ptr = interface_ptr;
   }
 
+  uint16_t passive_loop(const uint32_t& loop_time_ms)
+  {
+    unsigned long start_time = millis();
+    unsigned long start_time_micros = micros();
+
+    // update control
+    passive_update(loop_time_ms);
+
+    // measure time
+    // the loop time will actually be sent in the next loop
+    _loop_time = millis() - start_time;
+    _loop_time_micros = micros() - start_time_micros;
+
+    return _loop_time;
+  }
+
   uint16_t loop()
   {
     unsigned long start_time = millis();
     unsigned long start_time_micros = micros();
 
+    // get command
     _last_command_time = assign_latest_joint_commands();
 
     if (_last_command_time + (unsigned long)_command_timeout > millis())
     {
-      update();
       _is_timed_out = false;
     }
     else
@@ -54,6 +70,10 @@ public:
       _is_timed_out = true;
     }
 
+    // update control
+    update();
+
+    // send feedback
     send_joint_feedback();
 
     // measure time
@@ -122,6 +142,15 @@ protected:
   {
   }
 
+  virtual void passive_update(const unsigned long& delta_t_ms)
+  {
+    double dt = (double)delta_t_ms / MILLIS_TO_SEC;
+    for (uint8_t i = 0; i < _joint_array_length; ++i)
+    {
+      _joint_array_ptr[i].passive_update(dt);
+    }
+  }
+
   virtual void update()
   {
     for (uint8_t i = 0; i < _joint_array_length; ++i)
@@ -165,7 +194,7 @@ protected:
     }
 
     // send it and prep new command
-    _interface_ptr->send_and_receive();
+    // _interface_ptr->send_and_receive();
   }
 
 protected:
@@ -208,6 +237,35 @@ public:
 public:
   SkidMotionController() : MotionController()
   {
+  }
+
+  void skid_drive(const double& eff)
+  {
+    rhs_effort(eff);
+    lhs_effort(eff);
+  }
+
+  void skid_turn(const double& eff)
+  {
+    lhs_effort(-eff);
+    rhs_effort(eff);
+  }
+
+protected:
+  void rhs_effort(const double& eff)
+  {
+    for (int i = 0; i < _joint_array_length / 2; ++i)
+    {
+      _joint_array_ptr[2*i].set_vector_effort(eff);
+    }
+  }
+
+  void lhs_effort(const double& eff)
+  {
+    for (int i = 0; i < _joint_array_length / 2; ++i)
+    {
+      _joint_array_ptr[2*i + 1].set_vector_effort(eff);
+    }
   }
 };
 }  // namespace tmc

@@ -35,6 +35,7 @@ void MotorController::set_vector_effort(const double& new_effort)
   }
   else
   {
+    _effort = new_effort;
     _direction = MotorHAL::MOTOR_DIRECTION::FORWARD;
   }
 
@@ -62,18 +63,39 @@ const double MotorController::get_vector_effort()
   }
 }
 
-EncodedMotorController::EncodedMotorController(const encoded_motor_parameters_t& motor_params)
+EncodedMotorController::EncodedMotorController(encoded_motor_parameters_t motor_params)
   : _motor_params(motor_params), _last_update(0), _control_mode(CONTROL_MODE::POSITION)
 {
   // create the shared memory for the PIDs
-  _position_controller = new PIDController(&_motor_params.pos_pid_params);
-  _velocity_controller = new PIDController(&_motor_params.vel_pid_params);
+  _position_controller = &_motor_params.pos_pid_params;
+  _velocity_controller = &_motor_params.vel_pid_params;
+
+  // public access to params
+  pkp = &_position_controller->kp;
+  pki = &_position_controller->ki;
+  pkd = &_position_controller->kd;
+  vkp = &_velocity_controller->kp;
+  vki = &_velocity_controller->ki;
+  vkd = &_velocity_controller->kd;
 }
 
 EncodedMotorController::~EncodedMotorController()
 {
-  delete _position_controller;
-  delete _velocity_controller;
+}
+
+void EncodedMotorController::passive_update(const double& delta_t)
+{
+  double displacement;
+  // double delta_t = (double)delta_t_ms / MILLIS_TO_SEC;  // convert time to sec
+
+  // read encoder and update pos/vel
+  _last_update = millis();  // reset timer
+
+  displacement = _encoder_ptr->get_displacement(PIDController::measurement(_position_controller), _motor_params.pulse_to_pos);
+
+  PIDController::add_measurement(_position_controller, displacement);  // add to position measurement
+
+  PIDController::measurement(_velocity_controller, _encoder_ptr->get_velocity(displacement, delta_t));  // set current velocity
 }
 
 void EncodedMotorController::update()
@@ -82,31 +104,25 @@ void EncodedMotorController::update()
   unsigned long delta_t_ms = millis() - _last_update;   // get measurement duration
   double delta_t = (double)delta_t_ms / MILLIS_TO_SEC;  // convert time to sec
 
-  if (delta_t_ms >= _motor_params.update_interval)  // read encoder and update pos/vel
-  {
-    _last_update = millis();  // reset timer
-
-    displacement = _encoder_ptr->get_displacement(_position_controller->measurement(), _motor_params.pulse_to_pos);
-
-    _position_controller->add_measurement(displacement);  // add to position measurement
-
-    _velocity_controller->measurement(_encoder_ptr->get_velocity(displacement, delta_t));  // set current velocity
-  }
-  else
+  // if the update time has not arrived yet then wait
+  if (delta_t_ms < _motor_params.update_interval)
   {
     return;
   }
+
+  // read encoder and update pos/vel
+  passive_update(delta_t);
 
   // determine if currently in position or velocity control
   if (_control_mode == CONTROL_MODE::POSITION)  // position control
   {
     // determine velocity setpoint based on position pid factory
-    _velocity_controller->setpoint(_position_controller->improved_pid_factory(delta_t));
+    PIDController::setpoint(_velocity_controller, PIDController::improved_pid_factory(_position_controller, delta_t));
     // vel_effort = _position_controller->improved_pid_factory(delta_t);
   }
 
   // determine motor velocity effort based on velocity pid factory
-  vel_effort = _velocity_controller->improved_pid_factory(delta_t);
+  vel_effort = PIDController::improved_pid_factory(_velocity_controller, delta_t);
 
   // check limits and tolerances
   vel_effort *= _motor_params.vel_to_effort;
@@ -130,6 +146,8 @@ const double EncodedMotorController::test_effort_response(const uint8_t& effort,
   unsigned long t = millis();
   while (millis() - t < sample_time_ms)
   {
+    _motor_ptr->set_direction(MotorHAL::MOTOR_DIRECTION::FORWARD);
+    _motor_ptr->set_effort(effort);
   }
 
   // read encoder
@@ -146,7 +164,8 @@ const double EncodedMotorController::tune_effort_scalar(const uint8_t& effort)
 {
   double speed = test_effort_response(effort, 2000);
 
-  return speed / (double)effort;  // get inverse ratio (vel/eff)
+  // get inverse ratio (vel/eff) because the great chance of divide by zero
+  return speed / (double)effort;
 }
 
 void EncodedMotorController::halt()
@@ -158,9 +177,9 @@ void EncodedMotorController::set_position(const double& pos)  // unit radians
 {
   _control_mode = CONTROL_MODE::POSITION;  // set mode
 
-  _position_controller->setpoint(pos);  // new position setpoint
+  PIDController::setpoint(_position_controller, pos);  // new position setpoint
 
-  _position_controller->measurement(0);  // start position profile
+  PIDController::measurement(_position_controller, 0);  // start position profile
 
   _encoder_ptr->zero();  // reset encoder count
 
@@ -169,10 +188,10 @@ void EncodedMotorController::set_position(const double& pos)  // unit radians
 
 void EncodedMotorController::set_velocity(const double& vel)  // unit rad/s
 {
-  set_position(0);  // zero position control and measurements
+  // set_position(0);  // zero position control and measurements
 
   _control_mode = CONTROL_MODE::VELOCITY;  // set to velocity mode
 
-  _velocity_controller->setpoint(vel);  // new velocity setpoint
+  PIDController::setpoint(_velocity_controller, vel);  // new velocity setpoint
 }
 }  // namespace tmc

@@ -5,18 +5,18 @@
 
 namespace tmc
 {
-PIDController::PIDController(pid_parameters_t* params) : _pid_params(params)
-{
-}
+// PIDController::PIDController(pid_parameters_t* params) : _pid_params(params)
+// {
+// }
 
-void PIDController::zero()
+void PIDController::zero(pid_parameters_t* _pid_params)
 {
   _pid_params->sum_error = 0;
   _pid_params->previous_error = 0;
   _pid_params->signal_measured = 0;
 }
 
-double PIDController::pid_factory(double delta_t)
+double PIDController::pid_factory(pid_parameters_t* _pid_params, const double& delta_t)
 {
   double sig_error = _pid_params->signal_setpoint - _pid_params->signal_measured;  // get error function
 
@@ -30,7 +30,7 @@ double PIDController::pid_factory(double delta_t)
          _pid_params->kd * difference;  // calculate output
 }
 
-double PIDController::pid_factory(double sig_cur, double sig_set, double delta_t)
+double PIDController::pid_factory(pid_parameters_t* _pid_params, double sig_cur, double sig_set, double delta_t)
 {
   double sig_error = sig_set - sig_cur;  // get error function
 
@@ -44,15 +44,14 @@ double PIDController::pid_factory(double sig_cur, double sig_set, double delta_t
          _pid_params->kd * difference;  // calculate output
 }
 
-double PIDController::improved_pid_factory(double delta_t)
+double PIDController::improved_pid_factory(pid_parameters_t* _pid_params, const double& delta_t)
 {
   // removes derivative kick,
   // improves on the fly parameter change stability
   // reduce integral wind up lag
   // implements output limits
 
-  // TODO scale parameters with constant time
-
+  // XXX TODO: scale parameters with constant time
   double sig_error = _pid_params->signal_setpoint - _pid_params->signal_measured;  // get error function
 
   // remove derivative kick (kd*e -> - kd*dm/dt : dm = meas - meas_last)

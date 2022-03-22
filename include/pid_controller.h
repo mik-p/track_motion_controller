@@ -27,51 +27,52 @@ public:
   } pid_parameters_t;
 
 public:
-  PIDController(pid_parameters_t* params);
+  PIDController() = delete;
+  // PIDController(pid_parameters_t* params);
 
-  void set_upper_limit(double limit)
+  static void set_upper_limit(pid_parameters_t* _pid_params, const double& limit)
   {
     _pid_params->signal_limit_upper = limit;
   }
 
-  void set_lower_limit(double limit)
+  static void set_lower_limit(pid_parameters_t* _pid_params, const double& limit)
   {
     _pid_params->signal_limit_lower = limit;
   }
 
-  void zero();
+  static void zero(pid_parameters_t* _pid_params);
 
-  double setpoint()
+  static double setpoint(pid_parameters_t* _pid_params)
   {
     return _pid_params->signal_setpoint;
   }
 
-  void setpoint(double setpoint)
+  static void setpoint(pid_parameters_t* _pid_params, const double& setpoint)
   {
     _pid_params->signal_setpoint = setpoint;
   }
 
-  double measurement()
+  static double measurement(pid_parameters_t* _pid_params)
   {
     return _pid_params->signal_measured;
   }
 
-  void measurement(double measurement)
+  static void measurement(pid_parameters_t* _pid_params, const double& measurement)
   {
     _pid_params->signal_measured = measurement;
   }
 
-  void add_measurement(double measurement)
+  static void add_measurement(pid_parameters_t* _pid_params, const double& measurement)
   {
     _pid_params->signal_measured += measurement;
   }
 
-  double pid_factory(double delta_t);  // uses referenced pid parameters for sig_cur/set
-  double pid_factory(double sig_cur, double sig_set, double delta_t);
-  double improved_pid_factory(double delta_t);  // PID extensions
+  static double pid_factory(pid_parameters_t* _pid_params, const double& delta_t);  // uses referenced pid parameters for sig_cur/set
+  static double pid_factory(pid_parameters_t* _pid_params, double sig_cur, double sig_set, double delta_t);
+  static double improved_pid_factory(pid_parameters_t* _pid_params, const double& delta_t);  // PID extensions
 
-private:
-  pid_parameters_t* _pid_params;
+// private:
+  // pid_parameters_t* _pid_params;
 };
 
 }  // namespace tmc

@@ -32,6 +32,21 @@ bool tmc_use_logging = false;
  *
  */
 
+void print_bad_arg_count()
+{
+  shell.println("bad argument count");
+}
+
+void print_index_not_in_range()
+{
+  shell.println("index not in range");
+}
+
+void print_append_q_quit()
+{
+  shell.println("\t'q' to quit");
+}
+
 // console set debug string on/off command
 int toggle_use_debug(int /*argc*/ = 0, char** /*argv*/ = NULL)
 {
@@ -51,7 +66,7 @@ int set_loop_hz(int argc, char** argv)
 {
   if (argc != 2)
   {
-    shell.println("bad argument count");
+    print_bad_arg_count();
     return -1;
   }
 
@@ -59,11 +74,11 @@ int set_loop_hz(int argc, char** argv)
 
   if (loop_hz < 1 || loop_hz > 500)
   {
-    shell.println("rate not in range");
+    print_index_not_in_range();
     return -1;
   }
 
-  shell.print("Setting loop frequency to ");
+  shell.print("set loop hz ");
   shell.print(loop_hz);
   shell.println("hz");
 
@@ -79,7 +94,7 @@ int set_estop(int argc = 0, char** argv = NULL)
 {
   if (argc != 2)
   {
-    shell.println("bad argument count");
+    print_bad_arg_count();
     return -1;
   }
 
@@ -105,7 +120,7 @@ int run_enc_test_loop(int argc = 0, char** argv = NULL)
 {
   if (argc != 2)
   {
-    shell.println("bad argument count");
+    print_bad_arg_count();
     return -1;
   }
 
@@ -114,13 +129,12 @@ int run_enc_test_loop(int argc = 0, char** argv = NULL)
 
   if (enc < 1 || enc > 4)
   {
-    shell.println("encoder not in range");
+    print_index_not_in_range();
     return -1;
   }
 
-  shell.print("Testing encoder ");
-  shell.print(enc);
-  shell.println("...");
+  shell.print("test encoder ");
+  shell.println(enc);
 
   // read out encoder pulses
   char inchar = shell.read();
@@ -131,7 +145,7 @@ int run_enc_test_loop(int argc = 0, char** argv = NULL)
     shell.print(":");
     shell.print(enc_ptr_arr[enc - 1]->get_log_string());
     shell.print(debug_enc_isr_trig_arr[enc - 1]);
-    shell.println("\t'q' to quit");
+    print_append_q_quit();
 
     debug_enc_isr_trig_arr[enc - 1] = false;
 
@@ -146,30 +160,103 @@ int run_enc_test_loop(int argc = 0, char** argv = NULL)
 }
 
 // commands test motors
-// get top speed
-int mx_test_effort(int argc = 0, char** argv = NULL)
+// do one rotation and measure encoder and speed
+int mx_test_gear_ratio(int argc = 0, char** argv = NULL)
 {
-  if (argc != 2)
+  if (argc < 2)
   {
-    shell.println("bad argument count");
+    print_bad_arg_count();
     return -1;
   }
 
   // which motor
   unsigned long motor = atoi(argv[1]);
 
-  if (motor < 1 || motor > 2)
+  if (motor < 1 || motor > 4)
   {
-    shell.println("motor not in range");
+    print_index_not_in_range();
     return -1;
   }
 
-  shell.print("Testing motor ");
-  shell.print(motor);
-  shell.println("...");
+  // how fast
+  double eff = 200;
+  if (argc == 3)
+  {
+    eff = atoi(argv[2]);
+  }
+
+  shell.print("test motor ");
+  shell.println(motor);
+
+  // zero encoder
+  enc_ptr_arr[motor - 1]->zero();
+
+  // start spinning motor
+  unsigned long start_time = millis();
+  emc_array[motor - 1].set_vector_effort(eff);
+
+  // spin motor until one rotation is complete
+  char inchar = shell.read();
+  while(enc_ptr_arr[motor - 1]->get_pulses() < TMC_WHEEL_PPR && inchar != 'q')
+  {
+    emc_array[motor - 1].set_vector_effort(eff);
+    shell.print("MOT:");
+    shell.print(emc_array[motor - 1].get_vector_effort());
+    shell.print("ENC");
+    shell.print(motor);
+    shell.print(":");
+    shell.print(enc_ptr_arr[motor - 1]->get_log_string());
+    print_append_q_quit();
+
+    inchar = shell.read();
+  }
+
+  // calculate speed
+  unsigned long time = millis() - start_time;
+  double disp = enc_ptr_arr[motor - 1]->get_displacement(0, TMC_PID_PULSE_TO_POS_LIN);
+  double speed = enc_ptr_arr[motor - 1]->get_velocity(disp, ((double)time / MILLIS_TO_SEC));
+  double pps = (double)(enc_ptr_arr[motor - 1]->get_pulses()) / ((double)time / MILLIS_TO_SEC);
+
+  emc_array[motor - 1].stop();
+
+  shell.print("pps: ");
+  shell.print(pps);
+  shell.print(",");
+  shell.print("t: ");
+  shell.print((double)time / MILLIS_TO_SEC);
+  shell.print(",");
+  shell.print("disp: ");
+  shell.print(disp);
+  shell.print(",");
+  shell.print("speed: ");
+  shell.println(speed);
+
+  return EXIT_SUCCESS;
+}
+
+// get top speed
+int mx_test_max_effort(int argc = 0, char** argv = NULL)
+{
+  if (argc != 2)
+  {
+    print_bad_arg_count();
+    return -1;
+  }
+
+  // which motor
+  unsigned long motor = atoi(argv[1]);
+
+  if (motor < 1 || motor > 4)
+  {
+    print_index_not_in_range();
+    return -1;
+  }
+
+  shell.print("test motor ");
+  shell.println(motor);
 
   // test max speed for 2 seconds
-  double speed = emc_array[motor - 1].test_effort_response(MOTOR_EFFORT_MAX, 2000);
+  double speed = emc_array[motor - 1].test_effort_response(MOTOR_EFFORT_MAX, 5000);
 
   // print speed
   shell.print("speed: ");
@@ -179,26 +266,25 @@ int mx_test_effort(int argc = 0, char** argv = NULL)
 }
 
 // get speed to effort scalar
-int mx_tune(int argc = 0, char** argv = NULL)
+int mx_tune_effort_scalar(int argc = 0, char** argv = NULL)
 {
   if (argc != 2)
   {
-    shell.println("bad argument count");
+    print_bad_arg_count();
     return -1;
   }
 
   // which motor
   unsigned long motor = atoi(argv[1]);
 
-  if (motor < 1 || motor > 2)
+  if (motor < 1 || motor > 4)
   {
-    shell.println("motor not in range");
+    print_index_not_in_range();
     return -1;
   }
 
-  shell.print("Tuning motor ");
-  shell.print(motor);
-  shell.println("...");
+  shell.print("tune motor ");
+  shell.println(motor);
 
   // test max speed for 2 seconds
   double veleff = emc_array[motor - 1].tune_effort_scalar(MOTOR_EFFORT_MAX);
@@ -206,6 +292,209 @@ int mx_tune(int argc = 0, char** argv = NULL)
   // print speed
   shell.print("ratio: ");
   shell.println(veleff);
+
+  return EXIT_SUCCESS;
+}
+
+// motion control tests
+int smc_drive_test(int argc = 0, char** argv = NULL)
+{
+  char inchar = shell.read();
+  while(inchar != 'q')
+  {
+    shell.print(smc.get_log_string());
+    print_append_q_quit();
+
+    inchar = shell.read();
+
+    double effort = 60;
+
+    if (inchar == 'w')
+    {
+      smc.skid_drive(effort);
+    }
+    else if (inchar == 'a')
+    {
+      smc.skid_turn(effort);
+    }
+    else if (inchar == 'd')
+    {
+      smc.skid_turn(-effort);
+    }
+    else if (inchar == 's')
+    {
+      smc.skid_drive(-effort);
+    }
+
+    delay(20UL);
+    smc.passive_loop(20UL);
+  }
+
+  return EXIT_SUCCESS;
+}
+
+// pid tuning
+// position
+int pid_pos_tune(int argc = 0, char** argv = NULL)
+{
+  if (argc != 2)
+  {
+    print_bad_arg_count();
+    return -1;
+  }
+
+  // which motor
+  unsigned long motor = atoi(argv[1]);
+
+  if (motor < 1 || motor > 4)
+  {
+    print_index_not_in_range();
+    return -1;
+  }
+
+  emc_array[motor - 1].set_position(0.6);
+
+  char inchar = shell.read();
+  bool up = true;
+  double inc = 0.1;
+  while(inchar != 'q')
+  {
+    if(up)
+    {
+      shell.print("+:");
+    }
+    else
+    {
+      shell.print("-:");
+    }
+    shell.print(emc_array[motor - 1].get_pid_params_string());
+    shell.print(",");
+    shell.print("vel:");
+    shell.print(emc_array[motor - 1].get_velocity());
+    shell.print(",");
+    shell.print("pos:");
+    shell.print(emc_array[motor - 1].get_position());
+    print_append_q_quit();
+
+    inchar = shell.read();
+
+    if (inchar == 'p')
+    {
+      if (up)
+      {
+        *(emc_array[motor - 1].pkp) += inc;
+      }
+      else
+      {
+        *(emc_array[motor - 1].pkp) -= inc;
+      }
+    }
+    else if (inchar == 'i')
+    {
+      if (up)
+      {
+        *(emc_array[motor - 1].pki) += inc;
+      }
+      else
+      {
+        *(emc_array[motor - 1].pki) -= inc;
+      }
+    }
+    else if (inchar == '+')
+    {
+      up = true;
+    }
+    else if (inchar == '-')
+    {
+      up = false;
+    }
+    else if (inchar == ' ')
+    {
+      emc_array[motor - 1].set_position(0.6);
+    }
+
+    delay(dt);
+    emc_array[motor - 1].update();
+  }
+
+  return EXIT_SUCCESS;
+}
+
+// velocity
+int pid_vel_tune(int argc = 0, char** argv = NULL)
+{
+  if (argc != 2)
+  {
+    print_bad_arg_count();
+    return -1;
+  }
+
+  // which motor
+  unsigned long motor = atoi(argv[1]);
+
+  if (motor < 1 || motor > 4)
+  {
+    print_index_not_in_range();
+    return -1;
+  }
+
+  emc_array[motor - 1].set_velocity(0.6);
+
+  char inchar = shell.read();
+  bool up = true;
+  double inc = 0.1;
+  while(inchar != 'q')
+  {
+    if(up)
+    {
+      shell.print("+:");
+    }
+    else
+    {
+      shell.print("-:");
+    }
+    shell.print(emc_array[motor - 1].get_pid_params_string());
+    shell.print(",");
+    shell.print("vel:");
+    shell.print(emc_array[motor - 1].get_velocity());
+    print_append_q_quit();
+
+    inchar = shell.read();
+
+    if (inchar == 'p')
+    {
+      if (up)
+      {
+        *(emc_array[motor - 1].vkp) += inc;
+      }
+      else
+      {
+        *(emc_array[motor - 1].vkp) -= inc;
+      }
+    }
+    else if (inchar == 'i')
+    {
+      if (up)
+      {
+        *(emc_array[motor - 1].vki) += inc;
+      }
+      else
+      {
+        *(emc_array[motor - 1].vki) -= inc;
+      }
+    }
+    else if (inchar == '+')
+    {
+      up = true;
+    }
+    else if (inchar == '-')
+    {
+      up = false;
+    }
+
+    delay(dt);
+    emc_array[motor - 1].update();
+  }
 
   return EXIT_SUCCESS;
 }
@@ -236,10 +525,16 @@ void setup_console_commands()
   // set e-stop
   console.register_config(F("estop <val>"), set_estop);
   // encoder tests
-  console.register_config(F("encloop <enc_id>"), run_enc_test_loop);
+  console.register_config(F("encxread <enc_id>"), run_enc_test_loop);
+  console.register_config(F("mxencspin <motor_id> <eff>"), mx_test_gear_ratio);
   // motor controls
-  console.register_config(F("mxeff <motor_id>"), mx_test_effort);
-  console.register_config(F("mxtune <motor_id>"), mx_tune);
+  console.register_config(F("mxeffmax <motor_id>"), mx_test_max_effort);
+  console.register_config(F("mxefftune <motor_id>"), mx_tune_effort_scalar);
+  // motion tests
+  console.register_config(F("smcdrive"), smc_drive_test);
+  // pid tuning
+  console.register_config(F("pidpos <motor_id>"), pid_pos_tune);
+  console.register_config(F("pidvel <motor_id>"), pid_vel_tune);
 
 #endif
 }
@@ -256,9 +551,9 @@ void loop_console()
 // show version info
 void log_show_version(const char* fname)
 {
-  TMC_SERIAL_CONFIG.println("---   ###   ---");
+  // TMC_SERIAL_CONFIG.println("---   ###   ---");
   print_version(&TMC_SERIAL_CONFIG, fname);
-  TMC_SERIAL_CONFIG.println("---   ###   ---");
+  // TMC_SERIAL_CONFIG.println("---   ###   ---");
 }
 
 // loop logging

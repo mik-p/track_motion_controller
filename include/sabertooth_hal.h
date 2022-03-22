@@ -83,24 +83,23 @@ public:
     _current_effort = map(new_effort, MOTOR_EFFORT_MIN, MOTOR_EFFORT_MAX, MOTOR_EFFORT_MIN, STHAL_MOTOR_EFFORT_MAX);
 
     // set motor to selected effort
-    _st_driver_class.motor(_st_driver_params.st_motor_side, _current_effort);
+    _st_driver_class.motor(_st_driver_params.st_motor_side, _current_dir * (int)_current_effort);
   }
 
   void set_direction(const MOTOR_DIRECTION& new_dir)
   {
     // filter input to logic values
-    int8_t dir;
     if (new_dir <= MotorHAL::MOTOR_DIRECTION::FORWARD)
     {
-      dir = STHAL_MOTOR_DIRECTION_FORWARD;
+      _current_dir = STHAL_MOTOR_DIRECTION_FORWARD;
     }
     else
     {
-      dir = STHAL_MOTOR_DIRECTION_REVERSE;
+      _current_dir = STHAL_MOTOR_DIRECTION_REVERSE;
     }
 
     // set the motor provided direction
-    _st_driver_class.motor(_st_driver_params.st_motor_side, dir * _current_effort);
+    _st_driver_class.motor(_st_driver_params.st_motor_side, _current_dir * (int)_current_effort);
   }
 
 protected:
@@ -109,7 +108,7 @@ protected:
 
   // motor tracking variables
   uint8_t _current_effort;
-  uint8_t _current_dir;
+  int8_t _current_dir;
 
   // st driver
   uint32_t _st_command_timeout;

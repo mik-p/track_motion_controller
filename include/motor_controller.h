@@ -7,7 +7,7 @@
 namespace tmc
 {
 // #define RPS_TO_RPM 9.5493
-#define MILLIS_TO_SEC 1000
+#define MILLIS_TO_SEC 1000.0
 
 #define MOTOR_POSITIVE_DIR (1)
 #define MOTOR_NEGATIVE_DIR (-1)
@@ -66,7 +66,7 @@ public:
   // position zero is special, it is used to switch position control off
 
 public:
-  EncodedMotorController(const encoded_motor_parameters_t& motor_params);
+  EncodedMotorController(encoded_motor_parameters_t motor_params);
   ~EncodedMotorController();
 
   void init(MotorHAL* motor_ptr, Encoder* encoder_ptr)
@@ -76,6 +76,7 @@ public:
     _encoder_ptr->init();
   }
 
+  void passive_update(const double& delta_t);
   void update();
   const double test_effort_response(const uint8_t& effort, const uint32_t& sample_time_ms);
   const double tune_effort_scalar(const uint8_t& effort);
@@ -86,18 +87,45 @@ public:
   // get status of current vel or pos control
   const double get_position()
   {
-    return _position_controller->measurement();
+    return PIDController::measurement(_position_controller);
   }
 
   const double get_velocity()
   {
-    return _velocity_controller->measurement();
+    return PIDController::measurement(_velocity_controller);
   }
 
   virtual void set_update_interval(const unsigned long& update_interval)
   {
     _motor_params.update_interval = update_interval;
   }
+
+  const String get_pid_params_string()
+  {
+    String str = "";
+
+    str += _position_controller->kp;
+    str += ",";
+    str += _position_controller->ki;
+    str += ",";
+    str += _position_controller->kd;
+    str += ",";
+    str += _velocity_controller->kp;
+    str += ",";
+    str += _velocity_controller->ki;
+    str += ",";
+    str += _velocity_controller->kd;
+
+    return str;
+  }
+
+public:
+  double* pkp;
+  double* pki;
+  double* pkd;
+  double* vkp;
+  double* vki;
+  double* vkd;
 
 private:
   // encoder hardware ptr
@@ -109,7 +137,7 @@ private:
   CONTROL_MODE _control_mode;
 
   // pos/vel controllers
-  PIDController* _position_controller;
-  PIDController* _velocity_controller;
+  PIDController::pid_parameters_t* _position_controller;
+  PIDController::pid_parameters_t* _velocity_controller;
 };
 }  // namespace tmc
