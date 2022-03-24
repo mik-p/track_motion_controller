@@ -9,7 +9,7 @@
 #define LED_BUILTIN PC13
 #endif
 // battery
-#define BATT_PIN PG0
+#define BATT_PIN PF0
 #define BATT_REF 330
 #define BATT_DIV 400
 // motor pins
