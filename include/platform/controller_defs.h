@@ -4,6 +4,7 @@
 #include "platform/interface_defs.h"
 
 #include "battery.h"
+#include "estop.h"
 #include "motion_controller.h"
 
 namespace tmc
@@ -11,6 +12,9 @@ namespace tmc
 
 // make a battery
 Battery battery(BATT_PIN, BATT_REF, BATT_DIV);
+
+// make an estop
+EStop estop(E_STOP_PIN);
 
 // make the motion controller
 SkidMotionController smc;
@@ -26,6 +30,9 @@ void tmc_init_controller()
   // setup the motion controller's interface and motor references
   setup_interfaces();
   smc.attach_hw_refs(&interface_c, emc_array, 4);
+
+  // prime estop
+  estop.prime();
 }
 
 }  // namespace tmc
