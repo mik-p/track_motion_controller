@@ -281,12 +281,6 @@ protected:
     result_len++;
 
     // the rest of data is sets of sizeof(float) length long
-    if (!(len - result_len == _control_msg.length * sizeof(float)))
-    {
-      _recvd_new_cntrl_msg = false;
-      return &_control_msg;  // return ptr to control data
-    }
-
     for (uint8_t i = 0; i < _control_msg.length; ++i)
     {
       const long hl_dat = tmc_ntohl(*(long*)&buf[result_len]);

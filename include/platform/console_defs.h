@@ -579,7 +579,7 @@ void loop_log()
 #if TMC_DEBUG_LOGGING
   if (tmc_use_logging)
   {
-    TMC_SERIAL_CONFIG.println("TMC:DEBUG:" + smc.get_log_string());
+    TMC_SERIAL_CONFIG.println("DEBUG:" + smc.get_log_string());
   }
 #endif
 }

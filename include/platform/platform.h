@@ -21,8 +21,8 @@ namespace tmc
 void tmc_setup(const char* fname)
 {
   // say hi
-  blink(100);
-  blink(100);
+  blink(80);
+  blink(80);
 
   // init console
   setup_console_commands();
@@ -31,10 +31,10 @@ void tmc_setup(const char* fname)
   tmc_init_controller();
 
   // print version
-  blink(TMC_STARTUP_DELAY);
+  blink(TMC_STARTUP_DELAY / 2.0);
   log_show_version(fname);
 
-  blink(TMC_STARTUP_DELAY);
+  blink(TMC_STARTUP_DELAY / 2.0);
   log_show_version(fname);
 
   // print battery

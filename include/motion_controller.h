@@ -38,7 +38,7 @@ public:
 
   uint16_t passive_loop(const uint32_t& loop_time_ms)
   {
-    unsigned long start_time = millis();
+    // unsigned long start_time = millis();
     unsigned long start_time_micros = micros();
 
     // update control
@@ -50,7 +50,9 @@ public:
 
     // measure time
     // the loop time will actually be sent in the next loop
-    _loop_time = millis() - start_time;
+    _loop_time = millis() - _loop_start_time;
+    _loop_start_time = millis(); // reset timer
+    // loop time in micro seconds just measures the execution of this section of code
     _loop_time_micros = micros() - start_time_micros;
 
     return _loop_time;
@@ -58,7 +60,6 @@ public:
 
   uint16_t loop()
   {
-    unsigned long start_time = millis();
     unsigned long start_time_micros = micros();
 
     // get command
@@ -82,7 +83,9 @@ public:
 
     // measure time
     // the loop time will actually be sent in the next loop
-    _loop_time = millis() - start_time;
+    _loop_time = millis() - _loop_start_time;
+    _loop_start_time = millis(); // reset timer
+    // loop time in micro seconds just measures the execution of this section of code
     _loop_time_micros = micros() - start_time_micros;
 
     return _loop_time;
@@ -144,6 +147,8 @@ public:
 protected:
   MotionController() : _joint_array_length(0), _command_timeout(1000)
   {
+    // starting time for loop timing
+    _loop_start_time = millis();
   }
 
   virtual void passive_update(const unsigned long& delta_t_ms)
@@ -214,6 +219,7 @@ protected:
   double* _command_array_ptr;
 
   // timing measurements - in milliseconds
+  unsigned long _loop_start_time;
   uint16_t _loop_time;
   uint16_t _loop_time_micros;
   unsigned long _last_command_time;
