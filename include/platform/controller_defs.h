@@ -3,10 +3,14 @@
 #include "platform/motor_defs.h"
 #include "platform/interface_defs.h"
 
+#include "battery.h"
 #include "motion_controller.h"
 
 namespace tmc
 {
+
+// make a battery
+Battery battery(BATT_PIN, BATT_REF, BATT_DIV);
 
 // make the motion controller
 SkidMotionController smc;

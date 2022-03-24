@@ -8,6 +8,10 @@
 #undef LED_BUILTIN
 #define LED_BUILTIN PC13
 #endif
+// battery
+#define BATT_PIN PG0
+#define BATT_REF 330
+#define BATT_DIV 400
 // motor pins
 #define L_MOTOR_PIN_0 PB6 // tx D1
 #define L_MOTOR_PIN_1 PD1 // (e stop)

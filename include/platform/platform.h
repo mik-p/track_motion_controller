@@ -36,6 +36,9 @@ void tmc_setup(const char* fname)
 
   blink(TMC_STARTUP_DELAY);
   log_show_version(fname);
+
+  // print battery
+  console_print_battery();
 }
 
 /**

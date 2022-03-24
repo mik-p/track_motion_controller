@@ -12,18 +12,16 @@
 
 namespace tmc
 {
-#ifndef TMC_E407
 #ifndef BYTE_ORDER_UTIL_MACROS
 #define BYTE_ORDER_UTIL_MACROS
 
-#define htons(x) ((((x) << 8) & 0xFF00) | (((x) >> 8) & 0xFF))
-#define ntohs(x) htons(x)
+#define tmc_htons(x) ((((x) << 8) & 0xFF00) | (((x) >> 8) & 0xFF))
+#define tmc_ntohs(x) htons(x)
 
-#define htonl(x)                                                                                                       \
+#define tmc_htonl(x)                                                                                                       \
   (((x) << 24 & 0xFF000000UL) | ((x) << 8 & 0x00FF0000UL) | ((x) >> 8 & 0x0000FF00UL) | ((x) >> 24 & 0x000000FFUL))
-#define ntohl(x) htonl(x)
+#define tmc_ntohl(x) htonl(x)
 
-#endif
 #endif
 
 // defining a BIG_ENDIAN representation of our data (network byte order)
@@ -73,6 +71,25 @@ class InterfaceController
 public:
   ~InterfaceController()
   {
+  }
+
+  const String get_wire_string()
+  {
+    // create buffer
+    uint16_t len = INTERFACE_MAX_BUFFER_SIZE;
+    char buf[len];
+    String str = "";
+
+    // serialise the msg into the buffer
+    const uint16_t send_len = _serialise(buf, len, _feedback_msg);
+
+    for(int i = 0; i < send_len; i++)
+    {
+      str += (int)buf[i];
+      str += ' ';
+    }
+
+    return str;
   }
 
   const String get_log_string()
@@ -226,7 +243,8 @@ protected:
     // data in floats
     for (uint8_t i = 0; i < _feedback_msg.length; ++i)
     {
-      memcpy((void*)&buf[result_len], (void*)htonl(*(long*)&_feedback_msg.data[i]), sizeof(long));
+      const long nl_dat = tmc_htonl(*(long*)&_feedback_msg.data[i]);
+      memcpy((void*)&buf[result_len], (const void*)&nl_dat, sizeof(long));
       result_len += sizeof(float);
     }
 
@@ -271,7 +289,8 @@ protected:
 
     for (uint8_t i = 0; i < _control_msg.length; ++i)
     {
-      memcpy((void*)&_control_msg.data[i], (void*)ntohl(*(long*)&buf[result_len]), sizeof(float));
+      const long hl_dat = tmc_ntohl(*(long*)&buf[result_len]);
+      memcpy((void*)&_control_msg.data[i], (const void*)&hl_dat, sizeof(float));
       result_len += sizeof(long);
     }
 

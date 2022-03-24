@@ -44,6 +44,10 @@ public:
     // update control
     passive_update(loop_time_ms);
 
+    // update feedback and send
+    update_feedback_msg();
+    send_joint_feedback();
+
     // measure time
     // the loop time will actually be sent in the next loop
     _loop_time = millis() - start_time;
@@ -180,11 +184,9 @@ protected:
     return _last_command_time;
   }
 
-  virtual void send_joint_feedback()
+  virtual void update_feedback_msg()
   {
     // set feedback
-    // length = _joint_array_length;
-
     _interface_ptr->set_feedback_msg_header(_loop_time);
 
     for (uint8_t i = 0; i < _joint_array_length; ++i)
@@ -192,9 +194,15 @@ protected:
       // XXX TODO apply corrections
       _interface_ptr->push_feedback_data(_joint_array_ptr[i].get_velocity());
     }
+  }
+
+  virtual void send_joint_feedback()
+  {
+    // set feedback
+    update_feedback_msg();
 
     // send it and prep new command
-    // _interface_ptr->send_and_receive();
+    _interface_ptr->send_and_receive();
   }
 
 protected:

@@ -61,6 +61,14 @@ int console_print_version(int /*argc*/ = 0, char** /*argv*/ = NULL)
   return EXIT_SUCCESS;
 }
 
+// print battery voltage
+int console_print_battery(int /*argc*/ = 0, char** /*argv*/ = NULL)
+{
+  shell.print("vbat: ");
+  shell.println(battery.read());
+  return EXIT_SUCCESS;
+}
+
 // set loop rate hz
 int set_loop_hz(int argc, char** argv)
 {
@@ -334,6 +342,37 @@ int smc_drive_test(int argc = 0, char** argv = NULL)
 }
 
 // pid tuning
+// helpers
+void pid_increment_parameter(double& parameter, float increment, bool positive)
+{
+  if (positive)
+  {
+    parameter += increment;
+    return;
+  }
+  parameter -= increment;
+}
+
+void print_pid_parameters(uint8_t index, bool positive)
+{
+  if(positive)
+  {
+    shell.print("+:");
+  }
+  else
+  {
+    shell.print("-:");
+  }
+  shell.print(emc_array[index].get_pid_params_string());
+  shell.print(",");
+  shell.print("vel:");
+  shell.print(emc_array[index].get_velocity());
+  shell.print(",");
+  shell.print("pos:");
+  shell.print(emc_array[index].get_position());
+  print_append_q_quit();
+}
+
 // position
 int pid_pos_tune(int argc = 0, char** argv = NULL)
 {
@@ -356,49 +395,25 @@ int pid_pos_tune(int argc = 0, char** argv = NULL)
 
   char inchar = shell.read();
   bool up = true;
-  double inc = 0.1;
+  double pi_inc = 0.1;
+  double d_inc = 0.001;
   while(inchar != 'q')
   {
-    if(up)
-    {
-      shell.print("+:");
-    }
-    else
-    {
-      shell.print("-:");
-    }
-    shell.print(emc_array[motor - 1].get_pid_params_string());
-    shell.print(",");
-    shell.print("vel:");
-    shell.print(emc_array[motor - 1].get_velocity());
-    shell.print(",");
-    shell.print("pos:");
-    shell.print(emc_array[motor - 1].get_position());
-    print_append_q_quit();
+    print_pid_parameters(motor - 1, up);
 
     inchar = shell.read();
 
     if (inchar == 'p')
     {
-      if (up)
-      {
-        *(emc_array[motor - 1].pkp) += inc;
-      }
-      else
-      {
-        *(emc_array[motor - 1].pkp) -= inc;
-      }
+      pid_increment_parameter(*(emc_array[motor - 1].pkp), pi_inc, up);
     }
     else if (inchar == 'i')
     {
-      if (up)
-      {
-        *(emc_array[motor - 1].pki) += inc;
-      }
-      else
-      {
-        *(emc_array[motor - 1].pki) -= inc;
-      }
+      pid_increment_parameter(*(emc_array[motor - 1].pki), pi_inc, up);
+    }
+    else if (inchar == 'd')
+    {
+      pid_increment_parameter(*(emc_array[motor - 1].pkd), d_inc, up);
     }
     else if (inchar == '+')
     {
@@ -442,46 +457,25 @@ int pid_vel_tune(int argc = 0, char** argv = NULL)
 
   char inchar = shell.read();
   bool up = true;
-  double inc = 0.1;
+  double pi_inc = 0.1;
+  double d_inc = 0.001;
   while(inchar != 'q')
   {
-    if(up)
-    {
-      shell.print("+:");
-    }
-    else
-    {
-      shell.print("-:");
-    }
-    shell.print(emc_array[motor - 1].get_pid_params_string());
-    shell.print(",");
-    shell.print("vel:");
-    shell.print(emc_array[motor - 1].get_velocity());
-    print_append_q_quit();
+    print_pid_parameters(motor - 1, up);
 
     inchar = shell.read();
 
     if (inchar == 'p')
     {
-      if (up)
-      {
-        *(emc_array[motor - 1].vkp) += inc;
-      }
-      else
-      {
-        *(emc_array[motor - 1].vkp) -= inc;
-      }
+      pid_increment_parameter(*(emc_array[motor - 1].vkp), pi_inc, up);
     }
     else if (inchar == 'i')
     {
-      if (up)
-      {
-        *(emc_array[motor - 1].vki) += inc;
-      }
-      else
-      {
-        *(emc_array[motor - 1].vki) -= inc;
-      }
+      pid_increment_parameter(*(emc_array[motor - 1].vki), pi_inc, up);
+    }
+    else if (inchar == 'd')
+    {
+      pid_increment_parameter(*(emc_array[motor - 1].vkd), d_inc, up);
     }
     else if (inchar == '+')
     {
@@ -494,6 +488,25 @@ int pid_vel_tune(int argc = 0, char** argv = NULL)
 
     delay(dt);
     emc_array[motor - 1].update();
+  }
+
+  return EXIT_SUCCESS;
+}
+
+// network
+int fb_over_wire(int argc = 0, char** argv = NULL)
+{
+  char inchar = shell.read();
+  while(inchar != 'q')
+  {
+    shell.print(interface_c.get_wire_string());
+    // shell.println(smc.get_log_string());
+    print_append_q_quit();
+
+    delay(dt);
+    smc.passive_loop(dt);
+
+    inchar = shell.read();
   }
 
   return EXIT_SUCCESS;
@@ -516,6 +529,10 @@ void setup_console_commands()
   console.register_config(F("version"), console_print_version);
   // set debug string on/off
   console.register_config(F("debug"), toggle_use_debug);
+  // read battery
+  console.register_config(F("batt"), console_print_battery);
+  // debug wire
+  console.register_config(F("netstr"), fb_over_wire);
   // set comms config
   // set loop rate and other 'constants'
   console.register_config(F("rate <loop_rate>"), set_loop_hz);
@@ -526,12 +543,12 @@ void setup_console_commands()
   console.register_config(F("estop <val>"), set_estop);
   // encoder tests
   console.register_config(F("encxread <enc_id>"), run_enc_test_loop);
-  console.register_config(F("mxencspin <motor_id> <eff>"), mx_test_gear_ratio);
+  console.register_config(F("mxencrev <motor_id> <eff>"), mx_test_gear_ratio);
   // motor controls
   console.register_config(F("mxeffmax <motor_id>"), mx_test_max_effort);
   console.register_config(F("mxefftune <motor_id>"), mx_tune_effort_scalar);
   // motion tests
-  console.register_config(F("smcdrive"), smc_drive_test);
+  console.register_config(F("trackdrive"), smc_drive_test);
   // pid tuning
   console.register_config(F("pidpos <motor_id>"), pid_pos_tune);
   console.register_config(F("pidvel <motor_id>"), pid_vel_tune);
