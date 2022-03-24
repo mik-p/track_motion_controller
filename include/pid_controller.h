@@ -28,7 +28,6 @@ public:
 
 public:
   PIDController() = delete;
-  // PIDController(pid_parameters_t* params);
 
   static void set_upper_limit(pid_parameters_t* _pid_params, const double& limit)
   {
@@ -67,12 +66,10 @@ public:
     _pid_params->signal_measured += measurement;
   }
 
-  static double pid_factory(pid_parameters_t* _pid_params, const double& delta_t);  // uses referenced pid parameters for sig_cur/set
+  static double pid_factory(pid_parameters_t* _pid_params,
+                            const double& delta_t);  // uses referenced pid parameters for sig_cur/set
   static double pid_factory(pid_parameters_t* _pid_params, double sig_cur, double sig_set, double delta_t);
   static double improved_pid_factory(pid_parameters_t* _pid_params, const double& delta_t);  // PID extensions
-
-// private:
-  // pid_parameters_t* _pid_params;
 };
 
 }  // namespace tmc

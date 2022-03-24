@@ -51,7 +51,7 @@ public:
     // measure time
     // the loop time will actually be sent in the next loop
     _loop_time = millis() - _loop_start_time;
-    _loop_start_time = millis(); // reset timer
+    _loop_start_time = millis();  // reset timer
     // loop time in micro seconds just measures the execution of this section of code
     _loop_time_micros = micros() - start_time_micros;
 
@@ -84,7 +84,7 @@ public:
     // measure time
     // the loop time will actually be sent in the next loop
     _loop_time = millis() - _loop_start_time;
-    _loop_start_time = millis(); // reset timer
+    _loop_start_time = millis();  // reset timer
     // loop time in micro seconds just measures the execution of this section of code
     _loop_time_micros = micros() - start_time_micros;
 
@@ -175,8 +175,11 @@ protected:
 
     for (uint8_t i = 0; i < _joint_array_length; ++i)
     {
-      // XXX TODO: apply corrections
-      _joint_array_ptr[i].set_velocity(msg->data[i]);
+      // apply corrections
+      double vel = cap_velocity(msg->data[i]);
+
+      // assign joint command
+      _joint_array_ptr[i].set_velocity(vel);
     }
 
     // if the message was new then update the command time
@@ -208,6 +211,21 @@ protected:
 
     // send it and prep new command
     _interface_ptr->send_and_receive();
+  }
+
+  const double cap_velocity(const double& vel)
+  {
+    if (vel > TMC_PID_MAX_VEL)
+    {
+      return TMC_PID_MAX_VEL;
+    }
+
+    if (vel < (-1) * TMC_PID_MAX_VEL)
+    {
+      return (-1) * TMC_PID_MAX_VEL;
+    }
+
+    return vel;
   }
 
 protected:
@@ -270,7 +288,7 @@ protected:
   {
     for (int i = 0; i < _joint_array_length / 2; ++i)
     {
-      _joint_array_ptr[2*i].set_vector_effort(eff);
+      _joint_array_ptr[2 * i].set_vector_effort(eff);
     }
   }
 
@@ -278,7 +296,7 @@ protected:
   {
     for (int i = 0; i < _joint_array_length / 2; ++i)
     {
-      _joint_array_ptr[2*i + 1].set_vector_effort(eff);
+      _joint_array_ptr[2 * i + 1].set_vector_effort(eff);
     }
   }
 };

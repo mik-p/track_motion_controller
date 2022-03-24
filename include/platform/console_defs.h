@@ -146,7 +146,7 @@ int run_enc_test_loop(int argc = 0, char** argv = NULL)
 
   // read out encoder pulses
   char inchar = shell.read();
-  while(inchar != 'q')
+  while (inchar != 'q')
   {
     shell.print("ENC");
     shell.print(enc);
@@ -205,7 +205,7 @@ int mx_test_gear_ratio(int argc = 0, char** argv = NULL)
 
   // spin motor until one rotation is complete
   char inchar = shell.read();
-  while(enc_ptr_arr[motor - 1]->get_pulses() < TMC_WHEEL_PPR && inchar != 'q')
+  while (enc_ptr_arr[motor - 1]->get_pulses() < TMC_WHEEL_PPR && inchar != 'q')
   {
     emc_array[motor - 1].set_vector_effort(eff);
     shell.print("MOT:");
@@ -308,7 +308,7 @@ int mx_tune_effort_scalar(int argc = 0, char** argv = NULL)
 int smc_drive_test(int argc = 0, char** argv = NULL)
 {
   char inchar = shell.read();
-  while(inchar != 'q')
+  while (inchar != 'q')
   {
     shell.print(smc.get_log_string());
     print_append_q_quit();
@@ -355,7 +355,7 @@ void pid_increment_parameter(double& parameter, float increment, bool positive)
 
 void print_pid_parameters(uint8_t index, bool positive)
 {
-  if(positive)
+  if (positive)
   {
     shell.print("+:");
   }
@@ -397,7 +397,7 @@ int pid_pos_tune(int argc = 0, char** argv = NULL)
   bool up = true;
   double pi_inc = 0.1;
   double d_inc = 0.001;
-  while(inchar != 'q')
+  while (inchar != 'q')
   {
     print_pid_parameters(motor - 1, up);
 
@@ -459,7 +459,7 @@ int pid_vel_tune(int argc = 0, char** argv = NULL)
   bool up = true;
   double pi_inc = 0.1;
   double d_inc = 0.001;
-  while(inchar != 'q')
+  while (inchar != 'q')
   {
     print_pid_parameters(motor - 1, up);
 
@@ -497,7 +497,7 @@ int pid_vel_tune(int argc = 0, char** argv = NULL)
 int fb_over_wire(int argc = 0, char** argv = NULL)
 {
   char inchar = shell.read();
-  while(inchar != 'q')
+  while (inchar != 'q')
   {
     shell.print(interface_c.get_wire_string());
     // shell.println(smc.get_log_string());
