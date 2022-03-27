@@ -94,10 +94,10 @@ void EncodedMotorController::passive_update(const double& delta_t)
   displacement =
       _encoder_ptr->get_displacement(PIDController::measurement(_position_controller), _motor_params.pulse_to_pos);
 
-  PIDController::add_measurement(_position_controller, displacement);  // add to position measurement
+  PIDController::add_measurement(_position_controller, displacement);  // add to position measurement in rev/s
 
   PIDController::measurement(_velocity_controller,
-                             _encoder_ptr->get_velocity(displacement, delta_t));  // set current velocity
+                             _encoder_ptr->get_velocity(2 * M_PI * displacement, delta_t));  // set current velocity in r/s
 }
 
 void EncodedMotorController::update()

@@ -18,8 +18,9 @@ namespace tmc
 // pulses per revolution at output shaft
 #define TMC_WHEEL_PPR 1814.4  // mot_gear_ratio * enc_ppr
 // convert from rad velocity and nominal effort scalar
-#define TMC_PID_VEL_TO_EFF 357.1428571429  // max_eff / max_vel
-#define TMC_PID_MAX_VEL 0.7                // max velocity (r/s)
+// #define TMC_PID_MAX_VEL 0.7 * 2 * M_PI  // max velocity revs/s * 2 * pi (r/s)
+#define TMC_PID_MAX_VEL 4.39822971  // max velocity (r/s)
+#define TMC_PID_VEL_TO_EFF 56.841051169  // max_eff / max_vel
 // radial increment per pulse (arc length)
 #define TMC_PID_PULSE_TO_POS 0.000551146  // (wheel_revs / (mot_revs * enc_ppr))
 // linear position per pulse (includes wheel size)

@@ -47,7 +47,7 @@ const double Encoder::get_displacement(const double& pos_i, const double& pulse_
 {
   double pos_f = (double)(_encoder_pulses)*pulse_to_pos;  // convert pos to pulses
 
-  return pos_f - pos_i;  // return radians
+  return pos_f - pos_i;  // FIXME: return radians (currently revolutions?)
 }
 
 const double Encoder::get_velocity(const double& disp, const double& delta_t)
