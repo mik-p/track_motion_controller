@@ -2,6 +2,7 @@
 
 #include "motor_controller.h"
 #include "interface_controller.h"
+#include "battery.h"
 
 namespace tmc
 {
@@ -34,6 +35,11 @@ public:
     _joint_array_length = joint_array_length;
     _joint_array_ptr = joint_object_array;
     _interface_ptr = interface_ptr;
+  }
+
+  virtual void attach_battery(Battery* batt)
+  {
+    _batt_ptr = batt;
   }
 
   uint16_t passive_loop(const uint32_t& loop_time_ms)
@@ -77,6 +83,12 @@ public:
 
     // update control
     update();
+
+    // read battery
+    if (_batt_ptr)
+    {
+      _batt_mv = (uint16_t)(_batt_ptr->read() * 1000);
+    }
 
     // send feedback
     send_joint_feedback();
@@ -149,6 +161,7 @@ protected:
   {
     // starting time for loop timing
     _loop_start_time = millis();
+    _batt_mv = 0;
   }
 
   virtual void passive_update(const unsigned long& delta_t_ms)
@@ -195,7 +208,7 @@ protected:
   virtual void update_feedback_msg()
   {
     // set feedback
-    _interface_ptr->set_feedback_msg_header(_loop_time);
+    _interface_ptr->set_feedback_msg_header(_loop_time, _batt_mv);
 
     for (uint8_t i = 0; i < _joint_array_length; ++i)
     {
@@ -242,6 +255,10 @@ protected:
   uint16_t _loop_time_micros;
   unsigned long _last_command_time;
   uint16_t _command_timeout;
+
+  // battery
+  Battery* _batt_ptr;
+  uint16_t _batt_mv;
 
   // logging measurements
   bool _is_timed_out;

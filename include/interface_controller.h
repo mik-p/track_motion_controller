@@ -25,7 +25,7 @@ namespace tmc
 #endif
 
 // defining a BIG_ENDIAN representation of our data (network byte order)
-#define INTERFACE_HEADER_SIZE (sizeof(uint8_t) + (3 * sizeof(uint16_t)))
+#define INTERFACE_HEADER_SIZE (sizeof(uint8_t) + (4 * sizeof(uint16_t)))
 #define INTERFACE_MAX_DATA_SIZE 8
 #define INTERFACE_MAX_BUFFER_SIZE (INTERFACE_HEADER_SIZE + (INTERFACE_MAX_DATA_SIZE * sizeof(float)))
 
@@ -50,6 +50,7 @@ typedef struct
 {
   uint8_t status;      // 8 bits to use for status flags
   uint16_t loop_time;  // in milliseconds
+  uint16_t batt_mv; // battery in millivolts
   // unsigned long cmd_time;   // command in controller time ms
   // unsigned long fb_time;    // feedback in controller time ms
   uint16_t sequence;  // incrementing sequence number
@@ -101,6 +102,8 @@ public:
     log += ",";
     log += _control_msg.loop_time;
     log += ",";
+    log += _control_msg.batt_mv;
+    log += ",";
     log += _control_msg.sequence;
     log += ",";
     log += _control_msg.length;
@@ -115,6 +118,8 @@ public:
     log += _feedback_msg.status;
     log += ",";
     log += _feedback_msg.loop_time;
+    log += ",";
+    log += _control_msg.batt_mv;
     log += ",";
     log += _feedback_msg.sequence;
     log += ",";
@@ -156,10 +161,11 @@ public:
     return &_control_msg;
   }
 
-  void set_feedback_msg_header(const uint16_t& loop_time)
+  void set_feedback_msg_header(const uint16_t& loop_time, const uint16_t& batt)
   {
     _feedback_msg.status = 0;
     _feedback_msg.loop_time = loop_time;
+    _feedback_msg.batt_mv = batt;
     // _feedback_msg.fb_time = millis();
     _feedback_msg.length = 0;
     _feedback_msg.sequence++;             // increment sequence number
@@ -203,6 +209,7 @@ protected:
     // init feedback msg
     _feedback_msg.status = 0;
     _feedback_msg.loop_time = 0;
+    _feedback_msg.batt_mv = 0;
     // _feedback_msg.cmd_time = 0;
     // _feedback_msg.fb_time = 0;
     _feedback_msg.length = 0;
@@ -231,6 +238,10 @@ protected:
     // loop time
     buf[result_len++] = _feedback_msg.loop_time >> 8;      // high byte
     buf[result_len++] = _feedback_msg.loop_time & 0x00FF;  // low byte
+
+    // batt volts
+    buf[result_len++] = _feedback_msg.batt_mv >> 8;      // high byte
+    buf[result_len++] = _feedback_msg.batt_mv & 0x00FF;  // low byte
 
     // sequence
     buf[result_len++] = _feedback_msg.sequence >> 8;      // high byte
@@ -267,6 +278,11 @@ protected:
 
     // second two bytes is loop time
     _control_msg.loop_time = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
+    result_len++;
+    result_len++;
+
+    // next two bytes is batt volts
+    // _control_msg.batt_mv = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
     result_len++;
     result_len++;
 

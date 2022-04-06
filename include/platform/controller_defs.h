@@ -30,6 +30,7 @@ void tmc_init_controller()
   // setup the motion controller's interface and motor references
   setup_interfaces();
   smc.attach_hw_refs(&interface_c, emc_array, 4);
+  smc.attach_battery(&battery);
 
   // prime estop
   estop.prime();
