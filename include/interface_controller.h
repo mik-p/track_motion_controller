@@ -119,7 +119,7 @@ public:
     log += ",";
     log += _feedback_msg.loop_time;
     log += ",";
-    log += _control_msg.batt_mv;
+    log += _feedback_msg.batt_mv;
     log += ",";
     log += _feedback_msg.sequence;
     log += ",";
