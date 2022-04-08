@@ -31,6 +31,7 @@ void tmc_init_controller()
   setup_interfaces();
   smc.attach_hw_refs(&interface_c, emc_array, 4);
   smc.attach_battery(&battery);
+  smc.attach_estop(&estop);
 
   // prime estop
   estop.prime();

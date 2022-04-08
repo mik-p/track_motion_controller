@@ -9,6 +9,7 @@
 #include <STM32Ethernet.h>
 #endif
 #include <EthernetUdp.h>
+#include <CRC.h>
 
 namespace tmc
 {
@@ -48,7 +49,7 @@ void debug_print_channel(const char* buf, const uint16_t len)
 
 typedef struct
 {
-  uint8_t status;      // 8 bits to use for status flags
+  uint8_t status;      // 8 bits to use for status flags currently only used as e-stop
   uint16_t loop_time;  // in milliseconds
   uint16_t batt_mv; // battery in millivolts
   // unsigned long cmd_time;   // command in controller time ms
@@ -161,9 +162,9 @@ public:
     return &_control_msg;
   }
 
-  void set_feedback_msg_header(const uint16_t& loop_time, const uint16_t& batt)
+  void set_feedback_msg_header(const uint16_t& loop_time, const uint16_t& batt, const uint8_t& estop)
   {
-    _feedback_msg.status = 0;
+    _feedback_msg.status = !estop;
     _feedback_msg.loop_time = loop_time;
     _feedback_msg.batt_mv = batt;
     // _feedback_msg.fb_time = millis();
@@ -259,6 +260,9 @@ protected:
       result_len += sizeof(float);
     }
 
+    // create a crc
+    uint8_t packet_crc8 = crc8((uint8_t*)buf, result_len, 0x07, 0x00, 0x00, false, false);
+
     // return the buffer length
     return result_len;
   }
@@ -282,7 +286,7 @@ protected:
     result_len++;
 
     // next two bytes is batt volts
-    // _control_msg.batt_mv = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
+    _control_msg.batt_mv = ((uint16_t)buf[result_len] << 8) | buf[result_len + 1];
     result_len++;
     result_len++;
 
@@ -296,11 +300,18 @@ protected:
     result_len++;
     result_len++;
 
+    // check that length is acceptable size
+    if (_control_msg.length > INTERFACE_MAX_DATA_SIZE)
+    {
+      _recvd_new_cntrl_msg = false;
+      return &_control_msg;  // return ptr to control data
+    }
+
     // the rest of data is sets of sizeof(float) length long
     for (uint8_t i = 0; i < _control_msg.length; ++i)
     {
       const long hl_dat = tmc_ntohl(*(long*)&buf[result_len]);
-      memcpy((void*)&_control_msg.data[i], (const void*)&hl_dat, sizeof(float));
+      // memcpy((void*)&_control_msg.data[i], (const void*)&hl_dat, sizeof(float));
       result_len += sizeof(long);
     }
 

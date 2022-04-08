@@ -3,6 +3,7 @@
 #include "motor_controller.h"
 #include "interface_controller.h"
 #include "battery.h"
+#include "estop.h"
 
 namespace tmc
 {
@@ -40,6 +41,11 @@ public:
   virtual void attach_battery(Battery* batt)
   {
     _batt_ptr = batt;
+  }
+
+  virtual void attach_estop(EStop* stop)
+  {
+    _estop_ptr = stop;
   }
 
   uint16_t passive_loop(const uint32_t& loop_time_ms)
@@ -90,6 +96,12 @@ public:
       _batt_mv = (uint16_t)(_batt_ptr->read() * 1000);
     }
 
+    // read estop
+    if (_estop_ptr)
+    {
+      _estop = _estop_ptr->read();
+    }
+
     // send feedback
     send_joint_feedback();
 
@@ -126,7 +138,7 @@ public:
 
     // fill a csv string with metrics
     // time
-    log += "TIME:";
+    log += "T:";
     log += millis();
     log += ",";
     log += _loop_time;
@@ -138,7 +150,7 @@ public:
     log += _is_timed_out;
     log += ",";
     // joints
-    log += "JOINT:";
+    log += "J:";
     log += _joint_array_length;
     log += ",";
     for (uint8_t i = 0; i < _joint_array_length; ++i)
@@ -149,7 +161,7 @@ public:
       log += ",";
     }
     // comms
-    log += "COMM:";
+    log += "C:";
     log += _interface_ptr->get_log_string();
 
     // return log string
@@ -208,7 +220,7 @@ protected:
   virtual void update_feedback_msg()
   {
     // set feedback
-    _interface_ptr->set_feedback_msg_header(_loop_time, _batt_mv);
+    _interface_ptr->set_feedback_msg_header(_loop_time, _batt_mv, _estop);
 
     for (uint8_t i = 0; i < _joint_array_length; ++i)
     {
@@ -259,6 +271,10 @@ protected:
   // battery
   Battery* _batt_ptr;
   uint16_t _batt_mv;
+
+  // estop
+  uint8_t _estop;
+  EStop* _estop_ptr;
 
   // logging measurements
   bool _is_timed_out;
