@@ -102,6 +102,15 @@ public:
       _estop = _estop_ptr->read();
     }
 
+    // reset pid windups
+    if (!_estop)
+    {
+      for (uint8_t i = 0; i < _joint_array_length; ++i)
+      {
+        _joint_array_ptr[i].clear_pid_windup();
+      }
+    }
+
     // send feedback
     send_joint_feedback();
 

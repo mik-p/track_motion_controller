@@ -8,9 +8,9 @@ namespace tmc
 #define TMC_POS_PID_KI 0.0
 #define TMC_POS_PID_KD 0.0
 // velocity pid variables
-#define TMC_VEL_PID_KP 0.9
-#define TMC_VEL_PID_KI 3.5
-#define TMC_VEL_PID_KD 0.0
+#define TMC_VEL_PID_KP 1.0
+#define TMC_VEL_PID_KI 7.0
+#define TMC_VEL_PID_KD 0.0001
 // encoder pulses per revolution
 #define TMC_ENC_PPR 48  // 48 ppr
 // motor gear ratio

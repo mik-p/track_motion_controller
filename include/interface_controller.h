@@ -271,7 +271,7 @@ protected:
   {
     uint16_t result_len = 0;
 
-    if (!(len > INTERFACE_HEADER_SIZE))
+    if (len < INTERFACE_HEADER_SIZE)
     {
       _recvd_new_cntrl_msg = false;
       return &_control_msg;  // return ptr to control data
@@ -311,7 +311,7 @@ protected:
     for (uint8_t i = 0; i < _control_msg.length; ++i)
     {
       const long hl_dat = tmc_ntohl(*(long*)&buf[result_len]);
-      // memcpy((void*)&_control_msg.data[i], (const void*)&hl_dat, sizeof(float));
+      memcpy((void*)&_control_msg.data[i], (const void*)&hl_dat, sizeof(float));
       result_len += sizeof(long);
     }
 

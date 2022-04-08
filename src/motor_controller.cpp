@@ -196,4 +196,11 @@ void EncodedMotorController::set_velocity(const double& vel)  // unit rad/s
 
   PIDController::setpoint(_velocity_controller, vel);  // new velocity setpoint
 }
+
+void EncodedMotorController::clear_pid_windup()
+{
+  _position_controller->sum_error = 0.0;
+  _velocity_controller->sum_error = 0.0;
+}
+
 }  // namespace tmc

@@ -83,6 +83,7 @@ public:
   void halt();
   void set_position(const double& pos);  // start new vel or pos control, this resets status variables
   void set_velocity(const double& vel);
+  void clear_pid_windup(); // reset pid wind up error
 
   // get status of current vel or pos control
   const double get_position()

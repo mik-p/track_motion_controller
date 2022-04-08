@@ -453,7 +453,7 @@ int pid_vel_tune(int argc = 0, char** argv = NULL)
     return -1;
   }
 
-  emc_array[motor - 1].set_velocity(0.6);
+  emc_array[motor - 1].set_velocity(2.5);
 
   char inchar = shell.read();
   bool up = true;
@@ -484,6 +484,17 @@ int pid_vel_tune(int argc = 0, char** argv = NULL)
     else if (inchar == '-')
     {
       up = false;
+    }
+    else if (inchar == ' ')
+    {
+      if(up)
+      {
+        emc_array[motor - 1].set_velocity(2.5);
+      }
+      else
+      {
+        emc_array[motor - 1].set_velocity(0.0);
+      }
     }
 
     delay(dt);
